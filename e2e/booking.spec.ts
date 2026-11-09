@@ -4,7 +4,7 @@ import { calendar, meta, openDay, outbox } from "./helpers";
 test("a guest books, gets an email + calendar event, and can cancel", async ({ page }) => {
   const { date } = meta();
   await page.goto("/demo");
-  await expect(page.getByRole("heading", { name: "Sunny Stays Co." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Example Stays Co." })).toBeVisible();
   await expect(page.getByText("Built by")).toBeVisible();
   await page.getByRole("link", { name: /Owner intro call/ }).click();
 
@@ -21,7 +21,7 @@ test("a guest books, gets an email + calendar event, and can cancel", async ({ p
   await expect(page.getByTestId("selected-time")).toContainText("1:00 PM");
   await page.getByLabel("Your name").fill("Sam Guest");
   await page.getByLabel("Email").fill("sam@example.com");
-  await page.getByLabel("Property address").fill("12 Beach Rd, Galveston");
+  await page.getByLabel("Property address").fill("1 Example Rd, Anytown");
   await page.getByRole("button", { name: "Confirm booking" }).click();
 
   await expect(page.getByTestId("booking-heading")).toHaveText("You're booked! 🎉");

@@ -57,7 +57,7 @@ describe("locations", () => {
   it("resolves each meeting type", () => {
     expect(resolveLocation("link", "https://zoom.us/j/1", "x")).toBe("https://zoom.us/j/1");
     expect(resolveLocation("phone", "", "x", "+1 555 0100")).toBe("Phone: +1 555 0100");
-    expect(resolveLocation("in_person", "12 Beach Rd", "x")).toBe("12 Beach Rd");
+    expect(resolveLocation("in_person", "1 Example Rd", "x")).toBe("1 Example Rd");
     expect(isUrl("https://x.y/z")).toBe(true);
     expect(isUrl("javascript:alert(1)")).toBe(false);
   });
@@ -69,7 +69,7 @@ describe("misc", () => {
     expect(readableInk("#0f766e")).toBe("#ffffff");
   });
   it("slugifies names", () => {
-    expect(slugify("  Sunny Stays Co.! ")).toBe("sunny-stays-co");
+    expect(slugify("  Example Stays Co.! ")).toBe("example-stays-co");
     expect(slugify("Café Déjà")).toBe("cafe-deja");
   });
 });

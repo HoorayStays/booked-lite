@@ -26,8 +26,8 @@ async function main() {
     id: userId,
     email,
     username: "demo",
-    name: "Sunny Stays Co.",
-    bio: "We host 12 homes on the Gulf Coast. Grab a time to talk about co-hosting, cleaning schedules, or your next stay.",
+    name: "Example Stays Co.",
+    bio: "We host 12 vacation homes. Grab a time to talk about co-hosting, cleaning schedules, or your next stay.",
     timezone: "America/Chicago",
     brandColor: "#0f766e",
   });
@@ -106,7 +106,7 @@ async function main() {
     brandColor: "#0f766e",
   });
   await db.insert(schema.availability).values({ userId: mateId, weekly: DEFAULT_WEEKLY, overrides: [] });
-  await db.insert(schema.teams).values({ id: "demo-team", ownerId: userId, name: "Sunny Stays Team", slug: "sunny-stays" });
+  await db.insert(schema.teams).values({ id: "demo-team", ownerId: userId, name: "Example Stays Team", slug: "example-stays" });
   await db.insert(schema.teamMembers).values([
     { userId, teamId: "demo-team", role: "owner" },
     { userId: mateId, teamId: "demo-team", role: "member" },

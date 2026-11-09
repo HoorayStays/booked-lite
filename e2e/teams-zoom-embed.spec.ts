@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { calendar, fillGuest, openDay, outbox, zoom } from "./helpers";
 
-// Demo team (see scripts/seed.ts): Sunny Stays Co. works 9–5 Chicago, Jordan works 9–5 Denver (= 10–6 Chicago).
+// Demo team (see scripts/seed.ts): Example Stays Co. works 9–5 Chicago, Jordan works 9–5 Denver (= 10–6 Chicago).
 // The fake calendar is busy 10:00–12:00 Chicago for both on the test day.
 
 test("round robin: guests go to whoever is free, taking turns", async ({ page }) => {
-  await page.goto("/team/sunny-stays");
-  await expect(page.getByRole("heading", { name: "Sunny Stays Team" })).toBeVisible();
+  await page.goto("/team/example-stays");
+  await expect(page.getByRole("heading", { name: "Example Stays Team" })).toBeVisible();
   await page.getByRole("link", { name: /Free property assessment/ }).click();
   await openDay(page);
   // Union of both people's hours: 9:00 (only the owner) and 5:30 PM (only Jordan) are both offered.
@@ -15,7 +15,7 @@ test("round robin: guests go to whoever is free, taking turns", async ({ page })
 
   const hosts: string[] = [];
   for (const guest of ["Ana", "Ben"]) {
-    await page.goto("/team/sunny-stays/assessment");
+    await page.goto("/team/example-stays/assessment");
     await openDay(page);
     await page.getByRole("button", { name: "2:00 PM", exact: true }).click();
     await fillGuest(page, guest, `${guest.toLowerCase()}@example.com`);
@@ -26,20 +26,20 @@ test("round robin: guests go to whoever is free, taking turns", async ({ page })
     hosts.push((await page.getByText(/Free property assessment/).locator("..").textContent()) ?? "");
   }
   expect(hosts[0]).toContain("Jordan Lee");
-  expect(hosts[1]).toContain("Sunny Stays Co.");
+  expect(hosts[1]).toContain("Example Stays Co.");
   // Each host got the event on their own calendar.
   const events = calendar().events.filter((e: { title: string }) => e.title.startsWith("Free property assessment"));
   expect(new Set(events.map((e: { userId: string }) => e.userId)).size).toBe(2);
 
   // Both people are now busy at 2:00, so it's no longer offered.
-  await page.goto("/team/sunny-stays/assessment");
+  await page.goto("/team/example-stays/assessment");
   await openDay(page);
   await expect(page.getByRole("button", { name: "2:30 PM", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "2:00 PM", exact: true })).toHaveCount(0);
 });
 
 test("everyone-together events only offer times when the whole team is free", async ({ page }) => {
-  await page.goto("/team/sunny-stays/kickoff");
+  await page.goto("/team/example-stays/kickoff");
   await openDay(page);
   await expect(page.getByRole("button", { name: "12:00 PM", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "9:00 AM", exact: true })).toHaveCount(0); // Jordan isn't working yet
@@ -47,7 +47,7 @@ test("everyone-together events only offer times when the whole team is free", as
   await page.getByRole("button", { name: "12:00 PM", exact: true }).click();
   await fillGuest(page, "Cara Owner", "cara@example.com");
   await page.getByRole("button", { name: "Confirm booking" }).click();
-  await expect(page.getByText(/with Sunny Stays Co\. & Jordan Lee|with Jordan Lee & Sunny Stays Co\./)).toBeVisible();
+  await expect(page.getByText(/with Example Stays Co\. & Jordan Lee|with Jordan Lee & Example Stays Co\./)).toBeVisible();
   const hostMails = outbox().filter((m) => m.subject.startsWith("New booking: Owner kickoff"));
   expect(hostMails.map((m) => m.to).sort()).toEqual(["demo@example.com", "jordan@example.com"]);
 });
@@ -126,7 +126,7 @@ test("team owner invites a teammate who joins with a magic link", async ({ page,
   await page.getByRole("button", { name: "Continue to my dashboard" }).click();
 
   await page.getByRole("link", { name: "Team", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Sunny Stays Team" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Example Stays Team" })).toBeVisible();
   await page.getByLabel("Invite a teammate by email").fill("riley@example.com");
   await page.getByRole("button", { name: "Send invite" }).click();
   await expect(page.getByText("Invite sent to riley@example.com")).toBeVisible();
@@ -136,7 +136,7 @@ test("team owner invites a teammate who joins with a magic link", async ({ page,
   await expect(page.getByTestId("embed-snippet")).toContainText('<script src="http://localhost:3100/embed.js" async></script>');
 
   const invite = outbox().reverse().find((m) => m.to === "riley@example.com");
-  expect(invite.subject).toContain("invited you to join Sunny Stays Team");
+  expect(invite.subject).toContain("invited you to join Example Stays Team");
   const mate = await browser.newPage();
   await mate.goto(invite.text.match(/https?:\/\/\S+/)[0].replace(/^https?:\/\/[^/]+/, "http://localhost:3100"));
   await mate.getByRole("button", { name: "Accept & continue" }).click();

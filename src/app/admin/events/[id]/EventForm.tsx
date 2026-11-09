@@ -186,7 +186,7 @@ export function EventForm({ eventType: et, baseUrl, teamBaseUrl, team, people, h
           {locationType === "in_person" && (
             <>
               <label htmlFor="locationValue">Address</label>
-              <input id="locationValue" name="locationValue" type="text" defaultValue={et.locationValue} placeholder="123 Main St, Austin, TX" />
+              <input id="locationValue" name="locationValue" type="text" defaultValue={et.locationValue} placeholder="1 Example Rd, Anytown" />
             </>
           )}
         </div>

@@ -18,7 +18,7 @@ describe("guest email mode (no domain yet → forward to host)", () => {
   });
   it("emails guests directly from a verified domain", () => {
     vi.stubEnv("RESEND_API_KEY", "re_test");
-    vi.stubEnv("EMAIL_FROM", "Sunny Stays <bookings@sunnystays.com>");
+    vi.stubEnv("EMAIL_FROM", "Example Stays <bookings@example.com>");
     expect(guestEmailMode()).toBe("send");
   });
 });

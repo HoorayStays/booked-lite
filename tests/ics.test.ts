@@ -10,7 +10,7 @@ describe("ics", () => {
     title: "Owner intro call, with Sam; welcome",
     description: "Line one\nLine two",
     location: "https://meet.jit.si/OwnerIntro-abc",
-    organizer: { name: "Sunny Stays", email: "host@example.com" },
+    organizer: { name: "Example Stays", email: "host@example.com" },
     attendee: { name: 'Sam "The Guest"', email: "sam@example.com" },
     method: "REQUEST",
     now: Date.UTC(2026, 10, 9, 12, 0),

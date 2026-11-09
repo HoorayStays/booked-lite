@@ -20,7 +20,7 @@ export function displayName(u: User) {
   return u.name || u.username;
 }
 
-/** "Alex", "Alex & Sam", or "Alex (Sunny Stays)" for team events. */
+/** "Alex", "Alex & Sam", or "Alex (Example Stays)" for team events. */
 export function hostLabel(ctx: Pick<BookingCtx, "hosts" | "team" | "owner">) {
   const names = (ctx.hosts.length ? ctx.hosts : [ctx.owner]).map(displayName).join(" & ");
   return ctx.team ? `${names} (${ctx.team.name})` : names;

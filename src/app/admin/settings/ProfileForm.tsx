@@ -62,7 +62,7 @@ export function ProfileForm(p: Props) {
       <div className="grid-2">
         <div>
           <label htmlFor="name">Name shown to guests</label>
-          <input id="name" name="name" type="text" defaultValue={p.name} maxLength={80} placeholder="Alex at Sunny Stays" />
+          <input id="name" name="name" type="text" defaultValue={p.name} maxLength={80} placeholder="Alex at Example Stays" />
         </div>
         <div>
           <label htmlFor="username">Your link name</label>
@@ -72,7 +72,7 @@ export function ProfileForm(p: Props) {
       </div>
       <div>
         <label htmlFor="bio">Short intro</label>
-        <textarea id="bio" name="bio" defaultValue={p.bio} maxLength={1000} placeholder="Short-term rental host in Austin. Book a time to chat about your property." />
+        <textarea id="bio" name="bio" defaultValue={p.bio} maxLength={1000} placeholder="Short-term rental host. Book a time to chat about your property." />
       </div>
       <div>
         <label htmlFor="brandColor">Brand color</label>

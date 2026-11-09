@@ -71,7 +71,7 @@ Keep a **private note** open (Apple Notes, a password manager, or paper) to hold
    - Click **Add**, then copy the key (starts with `re_`) into your note as **RESEND_API_KEY**.
 
 **About emailing guests (please read, it's the #1 surprise):**
-Resend only sends email to *other people* once you prove you own a web address (a "domain", like `sunnystays.com`).
+Resend only sends email to *other people* once you prove you own a web address (a "domain", like `example.com`).
 **You don't need one to get started.** Without a domain:
 
 - ✅ You sign in, get "New booking" emails and test everything as normal.
@@ -89,7 +89,7 @@ No domain yet? See **"No domain yet?"** below (about $10 a year). Either way you
    Cloudflare…). If Resend offers an automatic setup button for your provider, use it. Otherwise search
    "add DNS record" + your provider's name for their help page. Then click **Verify**. It can take a few minutes
    up to a few hours.
-4. Once it says **Verified**, add **EMAIL_FROM** in Vercel (step 4), e.g. `Sunny Stays <bookings@sunnystays.com>`
+4. Once it says **Verified**, add **EMAIL_FROM** in Vercel (step 4), e.g. `Example Stays <bookings@example.com>`
    (any name before the @ works, as long as it's your verified domain), then **Redeploy**.
    Until then, leave EMAIL_FROM empty.
 
@@ -158,7 +158,7 @@ Google's screens change often; if a button has a slightly different name, look f
 5. In the search bar, type **Google Auth Platform** (or go to **APIs & Services → OAuth consent screen**).
    Click **Get started**.
 6. Fill in:
-   - **App name:** your business name, e.g. `Sunny Stays Booking`
+   - **App name:** your business name, e.g. `Example Stays Booking`
    - **User support email:** your email → **Next**
    - **Audience:** **External** → **Next**
    - **Contact information:** your email → **Next**
@@ -250,10 +250,10 @@ Reminders go out about 24 hours before each booking.
 
 ## Step 10 (optional): Your own web address
 
-Vercel → your project → **Settings** → **Domains** → add e.g. `book.sunnystays.com` and follow the DNS instructions.
+Vercel → your project → **Settings** → **Domains** → add e.g. `book.example.com` and follow the DNS instructions.
 Then:
-1. Add `APP_URL` = `https://book.sunnystays.com` in Vercel's Environment Variables.
-2. In Google Cloud → **Clients** → your client → add the new redirect URI `https://book.sunnystays.com/api/google/callback`.
+1. Add `APP_URL` = `https://book.example.com` in Vercel's Environment Variables.
+2. In Google Cloud → **Clients** → your client → add the new redirect URI `https://book.example.com/api/google/callback`.
 3. Redeploy.
 4. If you set up Zoom, add the new redirect URL in your Zoom app too.
 
@@ -261,7 +261,7 @@ Then:
 
 ## No domain yet? (the cheapest way to email guests directly)
 
-A domain is your own web address, like `sunnystays.com`. It also makes your emails look professional and land in inboxes
+A domain is your own web address, like `example.com`. It also makes your emails look professional and land in inboxes
 instead of spam. You only need it for **emailing guests and teammates**; everything else works without one
 (see step 3 for what happens until then).
 
@@ -274,7 +274,7 @@ instead of spam. You only need it for **emailing guests and teammates**; everyth
 Steps (Cloudflare shown; others are similar):
 
 1. Sign up at https://dash.cloudflare.com (free). Add a payment card when asked.
-2. **Domain Registration** → **Register Domains** → search a name (e.g. `sunnystays.com`; try `.co` or adding "stays",
+2. **Domain Registration** → **Register Domains** → search a name (e.g. `yourbusinessname.com`; try `.co` or adding "stays",
    "homes" or your town if it's taken) → **Purchase**. Tip: turn off auto-renew of extras; you only need the domain.
 3. In Resend: **Domains** → **Add Domain** → type it → **Add**. If you see a **Cloudflare / automatic setup** button, click it
    and approve. Otherwise copy each record into Cloudflare → your domain → **DNS** → **Records** → **Add record**
@@ -391,7 +391,7 @@ Add the database variables (step 4) and redeploy.
 
 **Guests don't get emails / I get emails saying "Forward to …"**
 That's the no-domain mode: guest emails come to you to forward. Verify a domain in Resend ("No domain yet?" above), set
-`EMAIL_FROM` to an address on that domain, e.g. `Sunny Stays <bookings@sunnystays.com>`, and redeploy.
+`EMAIL_FROM` to an address on that domain, e.g. `Example Stays <bookings@example.com>`, and redeploy.
 `/api/health` shows `emailFromCustomDomain: true` once it's right. Also check Resend → **Domains** says **Verified**.
 
 **I don't get any emails at all (not even "New booking")**
