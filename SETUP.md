@@ -70,14 +70,27 @@ Keep a **private note** open (Apple Notes, a password manager, or paper) to hold
    - Permission: **Sending access**
    - Click **Add**, then copy the key (starts with `re_`) into your note as **RESEND_API_KEY**.
 
-**About sending to guests:** until you verify a domain, Resend only delivers email **to your own address**.
-That's enough to sign in and test. To email **guests**, you need a domain you own (like `sunnystays.com`):
+**About emailing guests (please read, it's the #1 surprise):**
+Resend only sends email to *other people* once you prove you own a web address (a "domain", like `sunnystays.com`).
+**You don't need one to get started.** Without a domain:
 
-3. *(Do this now or later.)* Click **Domains** → **Add Domain** → type your domain → **Add**.
+- ✅ You sign in, get "New booking" emails and test everything as normal.
+- ✅ Guests see all their booking details **on screen** right after booking, with an **Add to calendar** button
+  and a page they can bookmark to reschedule or cancel.
+- 📨 Their confirmation, reminder and cancellation emails come **to you** instead, marked "Forward to [guest]",
+  with the calendar invite attached, so you can forward them in one click.
+- 📨 Team invites show a link on screen for you to text or email to your teammate.
+
+Already have a domain (your website's address, even one from Squarespace, Wix or GoDaddy)? Use that one, it's free.
+No domain yet? See **"No domain yet?"** below (about $10 a year). Either way you can do it now or after you're live.
+
+3. *(When you have a domain.)* In Resend click **Domains** → **Add Domain** → type your domain → **Add**.
    Resend shows 3–4 DNS records. Add them where your domain is managed (GoDaddy, Namecheap, Squarespace,
-   Cloudflare…). Search "add DNS record" + your provider's name for their help page. Then click **Verify**.
-   It can take a few minutes up to a few hours.
-4. Once verified, your **EMAIL_FROM** will be something like `Sunny Stays <bookings@sunnystays.com>`.
+   Cloudflare…). If Resend offers an automatic setup button for your provider, use it. Otherwise search
+   "add DNS record" + your provider's name for their help page. Then click **Verify**. It can take a few minutes
+   up to a few hours.
+4. Once it says **Verified**, add **EMAIL_FROM** in Vercel (step 4), e.g. `Sunny Stays <bookings@sunnystays.com>`
+   (any name before the @ works, as long as it's your verified domain), then **Redeploy**.
    Until then, leave EMAIL_FROM empty.
 
 ✅ You have `RESEND_API_KEY` (and later `EMAIL_FROM`).
@@ -94,7 +107,7 @@ That's enough to sign in and test. To email **guests**, you need a domain you ow
 
    | Key | Value |
    |-----|-------|
-   | `ALLOWED_EMAILS` | Your email address (the one you'll sign in with) |
+   | `ALLOWED_EMAILS` | Your email address: the one you'll sign in with **and** used for Resend |
    | `AUTH_SECRET` | Open **https://generate-secret.vercel.app/32** and copy what it shows |
    | `CRON_SECRET` | Refresh that same page and copy the **new** value |
    | `DATABASE_URL` | From step 2 |
@@ -209,10 +222,11 @@ In the dashboard:
 ## Step 8: Test-book yourself
 
 1. On your phone, open `https://YOUR-SITE.vercel.app/YOUR-LINK-NAME` (shown at the top of your dashboard).
-2. Pick a time and book it, **using your own email** (until your Resend domain is verified, only your email receives messages).
+2. Pick a time and book it (use your own email for this first test).
 3. Check:
    - ✅ The "You're booked!" page appears
-   - ✅ You got a confirmation email with a calendar invite attached
+   - ✅ You got the confirmation email with a calendar invite attached (without a domain yet, it arrives
+     marked "Forward to [guest]". That's expected.)
    - ✅ You got a "New booking" email
    - ✅ The event appears in your Google Calendar
    - ✅ It shows in your dashboard under **Bookings**
@@ -242,6 +256,39 @@ Then:
 2. In Google Cloud → **Clients** → your client → add the new redirect URI `https://book.sunnystays.com/api/google/callback`.
 3. Redeploy.
 4. If you set up Zoom, add the new redirect URL in your Zoom app too.
+
+---
+
+## No domain yet? (the cheapest way to email guests directly)
+
+A domain is your own web address, like `sunnystays.com`. It also makes your emails look professional and land in inboxes
+instead of spam. You only need it for **emailing guests and teammates**; everything else works without one
+(see step 3 for what happens until then).
+
+**Cheapest option: about $10–12 a year for a `.com`.** Registrars that sell at (or near) cost with no upsells:
+
+- **Cloudflare Registrar** (https://dash.cloudflare.com → **Domain Registration** → **Register Domains**): sells at cost,
+  and Resend can often set up the DNS records for you automatically.
+- **Porkbun** (https://porkbun.com): cheap, simple, includes free privacy.
+
+Steps (Cloudflare shown; others are similar):
+
+1. Sign up at https://dash.cloudflare.com (free). Add a payment card when asked.
+2. **Domain Registration** → **Register Domains** → search a name (e.g. `sunnystays.com`; try `.co` or adding "stays",
+   "homes" or your town if it's taken) → **Purchase**. Tip: turn off auto-renew of extras; you only need the domain.
+3. In Resend: **Domains** → **Add Domain** → type it → **Add**. If you see a **Cloudflare / automatic setup** button, click it
+   and approve. Otherwise copy each record into Cloudflare → your domain → **DNS** → **Records** → **Add record**
+   (Type, Name and Content exactly as Resend shows; leave "Proxy" off / "DNS only").
+4. Back in Resend click **Verify** and wait until it says **Verified**.
+5. In Vercel add `EMAIL_FROM` = `Your Business <bookings@yourdomain.com>` → **Redeploy**.
+6. Check `https://YOUR-SITE/api/health`: `emailFromCustomDomain` should be `true`. Book a test with a *different*
+   email (a friend's or a second address) to confirm guests now get emails directly.
+
+*Already pay for a website builder?* Squarespace, Wix and others often include a free domain for the first year. You can use
+that one: add Resend's records in the builder's **Domains → DNS settings**.
+
+> Avoid free email-forwarding tricks or using your Gmail address as `EMAIL_FROM`: Resend can't send "from" Gmail, and
+> guests' inboxes would flag it as spam.
 
 ---
 
@@ -342,9 +389,14 @@ Add the database variables (step 4) and redeploy.
 - Is `RESEND_API_KEY` set? In Resend, open **Emails** (or **Logs**) to see if it was sent or why it failed.
 - Without a verified domain, Resend only sends to the email you signed up to Resend with.
 
-**Guests don't get emails**
-Verify your domain in Resend (step 3) and set `EMAIL_FROM` to an address on that domain, e.g.
-`Sunny Stays <bookings@sunnystays.com>`. Redeploy.
+**Guests don't get emails / I get emails saying "Forward to …"**
+That's the no-domain mode: guest emails come to you to forward. Verify a domain in Resend ("No domain yet?" above), set
+`EMAIL_FROM` to an address on that domain, e.g. `Sunny Stays <bookings@sunnystays.com>`, and redeploy.
+`/api/health` shows `emailFromCustomDomain: true` once it's right. Also check Resend → **Domains** says **Verified**.
+
+**I don't get any emails at all (not even "New booking")**
+Make sure the **first** email in `ALLOWED_EMAILS` is the same one you signed up to Resend with. Without a domain,
+Resend can only deliver to that address.
 
 **"That link has expired or was already used"**
 Links work once and last 15 minutes. Ask for a new one. If it happens every time, your email app may be "pre-opening"
@@ -396,8 +448,9 @@ That host hasn't connected Zoom (or Google), or the connection broke. Check **Se
 reconnect. Zoom connections stop working after 90 days without any bookings; just reconnect.
 
 **A teammate didn't get their invite**
-Until your domain is verified in Resend, emails only reach your own address (step 3). Invites last 7 days; send a new one
-from the **Team** tab.
+Until your domain is verified, invites aren't emailed: the Team tab shows the link right after you click **Send invite**.
+Copy it and text or email it to them. Invites last 7 days; send a new one any time. Teammates stay signed in for 30 days;
+after that they need a sign-in email, which needs the verified domain (or a new invite link from you).
 
 **Still stuck?** Tell Claude exactly what you see (an error message or a screenshot description), but never paste keys.
 
@@ -412,7 +465,8 @@ from the **Team** tab.
 - [ ] At least one event type is **On**
 - [ ] Google Calendar is connected, the right calendars are ticked, and the Google app is **Published**
 - [ ] A test booking: confirmation email ✓, host email ✓, calendar event ✓, cancel works ✓
-- [ ] (For guest emails) my domain is verified in Resend and `EMAIL_FROM` is set
+- [ ] (For guest emails) my domain is verified in Resend, `EMAIL_FROM` is set, and `/api/health` shows `emailFromCustomDomain: true`.
+      Not yet? That's OK: guest emails come to me marked "Forward to …" and guests see everything on screen.
 - [ ] (Optional) GitHub secrets `APP_URL` + `CRON_SECRET` added for hourly reminders
 - [ ] (Optional) The booking widget is on my website (**Share & embed**)
 - [ ] (Optional) Teammates invited, and each has connected their calendar and set availability

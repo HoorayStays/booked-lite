@@ -231,3 +231,22 @@ export function teamInviteEmail(teamName: string, inviterName: string, link: str
     text: `${inviterName} invited you to join ${teamName} on B👀KED Lite.\n\nAccept: ${link}\n\nThe link works once and expires in 7 days.`,
   };
 }
+
+/**
+ * Before the host verifies an email domain, Resend can only deliver to the host's own address.
+ * So the guest's email goes to the host instead, with a note asking them to forward it.
+ */
+export function forwardToGuest(email: Omit<Email, "to">, guestName: string, guestEmail: string): Omit<Email, "to"> {
+  const note =
+    `Your email domain isn't verified in Resend yet, so B👀KED Lite couldn't email ${guestName} (${guestEmail}). ` +
+    `Please forward this message to them (any calendar invite is attached). They also saw all the details on screen after booking. ` +
+    `To email guests automatically, verify a domain: SETUP.md → "No domain yet?".`;
+  const banner = `<div style="background:#fff7e6;color:#92400e;border-radius:10px;padding:12px 14px;margin-bottom:12px;font-size:14px;line-height:1.5">📨 <strong>Forward to your guest.</strong> ${esc(note)}</div>`;
+  return {
+    ...email,
+    subject: `[Forward to ${guestName}] ${email.subject}`,
+    html: email.html.replace('<div style="max-width:560px;margin:0 auto;padding:24px 16px">', (m) => m + banner),
+    text: `📨 FORWARD TO YOUR GUEST: ${note}\n\n----------\n\n${email.text}`,
+    replyTo: guestEmail,
+  };
+}

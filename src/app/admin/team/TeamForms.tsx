@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { CopyLink } from "@/components/CopyLink";
 import { createTeamAction, inviteAction, renameTeamAction, type ActionState } from "../actions";
 
 function Status({ state }: { state: ActionState }) {
@@ -57,6 +58,7 @@ export function InviteForm() {
         <button className="btn" disabled={pending}>{pending ? "Sending…" : "Send invite"}</button>
       </div>
       <Status state={state} />
+      {state.link && <CopyLink url={state.link} />}
     </form>
   );
 }

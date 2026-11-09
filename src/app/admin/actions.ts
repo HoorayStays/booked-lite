@@ -17,7 +17,7 @@ import { RESERVED_USERNAMES, slugify } from "@/lib/users";
 import { getCalendar } from "@/lib/calendar";
 import type { DateOverride, Question, WeeklyHours } from "@/lib/types";
 
-export type ActionState = { ok?: boolean; error?: string; message?: string };
+export type ActionState = { ok?: boolean; error?: string; message?: string; link?: string };
 
 const int = (min: number, max: number) => z.coerce.number().int().min(min).max(max);
 
@@ -301,9 +301,16 @@ export async function renameTeamAction(_prev: ActionState, formData: FormData): 
 export async function inviteAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const { user, team } = await requireTeamOwner();
   const email = String(formData.get("email") ?? "");
-  const err = await inviteToTeam(team, user, email);
-  if (err) return { error: err };
+  const res = await inviteToTeam(team, user, email);
+  if (res.error) return { error: res.error };
   revalidatePath("/admin/team");
+  if (res.link) {
+    return {
+      ok: true,
+      link: res.link,
+      message: `Invite created for ${email.trim().toLowerCase()}. Your email domain isn't verified yet, so send them this link yourself (text or email):`,
+    };
+  }
   return { ok: true, message: `Invite sent to ${email.trim().toLowerCase()} ✓` };
 }
 

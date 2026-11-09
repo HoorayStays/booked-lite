@@ -22,6 +22,10 @@ Walk them through **[SETUP.md](SETUP.md)**, one step at a time. How to do it wel
    Use `googleRedirectUri` from that page when they reach step 6d, so they paste the exact right value.
 6. **Remind them to Redeploy** in Vercel after changing environment variables. It's the #1 cause of "it didn't work".
 7. **Finish with the Final checklist** in SETUP.md, and suggest a test booking from their phone.
+7b. **No domain? Don't block on it.** If they have no domain, reassure them: they can go live now. Guests see their
+   booking on screen, guest emails come to the host marked "Forward to …", and team invites show a copyable link.
+   Offer the "No domain yet?" section of SETUP.md (about $10/year) when they're ready. The first `ALLOWED_EMAILS`
+   address must be the one they signed up to Resend with.
 8. Use the **Troubleshooting** section of SETUP.md when something goes wrong.
 9. Afterwards, offer the optional extras in SETUP.md: **put it on their website** (step 11: walk them through their
    website builder; ask which one they use), **a team**, **Google Meet**, and **Zoom**. Zoom keys follow the same secrets rule.
@@ -67,6 +71,8 @@ Walk them through **[SETUP.md](SETUP.md)**, one step at a time. How to do it wel
 - `src/lib/calendar/`: `google.ts` (OAuth + freebusy + events), `fake.ts` (JSON-file calendar for tests),
   `index.ts` (picks the provider, refreshes tokens). Tokens are encrypted with AES-GCM (`src/lib/crypto.ts`).
 - `src/lib/email/`: `send.ts` (Resend, or log to console/`.data/outbox.jsonl` when no key) and `templates.ts`.
+  `guestEmailMode()` in `env.ts`: `send` (verified domain in EMAIL_FROM), `forward-to-host` (Resend key but no domain:
+  guest emails go to the first ALLOWED_EMAILS address with a "Forward to …" banner), or `log` (no key).
 - `src/lib/ics.ts`: calendar invite files. `src/lib/location.ts` handles Jitsi rooms on meet.jit.si, links, phone, and in-person.
 - `src/lib/auth.ts`: magic-link sign-in (only emails in `ALLOWED_EMAILS`), sessions in the DB.
 - Public pages: `src/app/[user]/` and `src/app/team/[slug]/` (profile + event pages, built from

@@ -26,6 +26,8 @@ test("a guest books, gets an email + calendar event, and can cancel", async ({ p
 
   await expect(page.getByTestId("booking-heading")).toHaveText("You're booked! 🎉");
   await expect(page.getByTestId("booking-when")).toContainText("1:00 PM");
+  // No verified email domain in tests → guests are told to save the page.
+  await expect(page.getByTestId("save-this-page")).toBeVisible();
   await expect(page.getByRole("link", { name: /meet\.jit\.si/ })).toBeVisible();
 
   // Written to the (fake) calendar…

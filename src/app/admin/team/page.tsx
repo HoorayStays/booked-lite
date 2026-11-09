@@ -60,8 +60,8 @@ export default async function TeamPage() {
           <hr />
           <InviteForm />
           <p className="subtle">
-            They get an email with a join link (valid 7 days). Note: until your email domain is verified in Resend, invites
-            only reach your own address (see SETUP.md → step 3).
+            They get an email with a join link (valid 7 days). Until your email domain is verified in Resend, you&apos;ll get the
+            link here to send them yourself, and teammates sign in with that link (it keeps them signed in for 30 days).
           </p>
         </div>
       )}

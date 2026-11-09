@@ -7,6 +7,7 @@ import { formatDateTimeRange, timeZoneLabel } from "@/lib/format";
 import { isUrl, locationDisplay } from "@/lib/location";
 import { eventPageUrl, hostLabel } from "@/lib/email/templates";
 import { ProfileHeader } from "@/components/ProfileHeader";
+import { guestEmailMode } from "@/lib/env";
 import { PublicShell } from "@/components/public/PublicShell";
 import { cancelAsGuest } from "./actions";
 
@@ -46,7 +47,15 @@ export default async function BookingPage({ params, searchParams }: Props) {
             {done ? "You're booked! 🎉" : "Your booking"}
           </h1>
         )}
-        {done && !cancelled && <p className="muted">A confirmation email with a calendar invite is on its way to {b.guestEmail}.</p>}
+        {done && !cancelled &&
+          (guestEmailMode() === "send" ? (
+            <p className="muted">A confirmation email with a calendar invite is on its way to {b.guestEmail}.</p>
+          ) : (
+            <div className="alert alert-warn" data-testid="save-this-page">
+              <strong>Save this page.</strong> {hostLabel(ctx)} has your booking, but email confirmations aren&apos;t switched on
+              yet. Tap <strong>Add to calendar</strong> below, and bookmark this page to reschedule or cancel later.
+            </div>
+          ))}
         <div className="stack-sm">
           <div className="subtle">What</div>
           <div><strong>{et.title}</strong> with {hostLabel(ctx)}</div>

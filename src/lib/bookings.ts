@@ -7,9 +7,10 @@ import type { CalendarEventInput } from "./calendar/types";
 import { randomId, randomToken } from "./crypto";
 import { jitsiRoomUrl, resolveLocation } from "./location";
 import { buildIcs } from "./ics";
-import { sendEmail } from "./email/send";
+import { sendEmail, type Email } from "./email/send";
 import {
   displayName,
+  forwardToGuest,
   guestCancellation,
   guestConfirmation,
   guestReminder,
@@ -22,7 +23,7 @@ import {
 import { getEventHosts } from "./teams";
 import { getZoom, recordZoomError, type ZoomMeetingInput } from "./zoom";
 import { DEFAULT_WEEKLY, type Interval } from "./types";
-import { appUrl } from "./env";
+import { allowedEmails, appUrl, guestEmailMode } from "./env";
 
 const DAY = 86_400_000;
 
@@ -252,6 +253,18 @@ export function bookingIcs(ctx: BookingCtx) {
   return inviteFor(ctx, ctx.booking.status === "cancelled" ? "CANCEL" : "REQUEST").content;
 }
 
+/**
+ * Emails the guest. Before the host has a verified email domain, Resend can only reach the host's own
+ * address, so the host gets a copy to forward instead (see SETUP.md → "No domain yet?").
+ */
+async function emailGuest(ctx: BookingCtx, email: Omit<Email, "to">) {
+  const b = ctx.booking;
+  if (guestEmailMode() !== "forward-to-host") return sendEmail({ to: b.guestEmail, ...email });
+  // The Resend account owner: SETUP.md asks for the first ALLOWED_EMAILS address to be the one used for Resend.
+  const to = allowedEmails()[0] ?? (ctx.hosts[0] ?? ctx.owner).email;
+  return sendEmail({ to, ...forwardToGuest(email, b.guestName, b.guestEmail) });
+}
+
 async function notifyHosts(ctx: BookingCtx, kind: "new" | "rescheduled" | "cancelled", reason?: string) {
   await Promise.all(ctx.hosts.map((h) => sendEmail({ to: h.email, ...hostNotification(ctx, h, kind, reason) })));
 }
@@ -354,7 +367,7 @@ export async function createBooking(et: EventType, req: BookingRequest): Promise
   }
 
   await Promise.all([
-    sendEmail({ to: booking.guestEmail, ...guestConfirmation(ctx, "new"), attachments: [inviteFor(ctx, "REQUEST")] }),
+    emailGuest(ctx, { ...guestConfirmation(ctx, "new"), attachments: [inviteFor(ctx, "REQUEST")] }),
     notifyHosts(ctx, "new"),
   ]);
   return booking;
@@ -397,7 +410,7 @@ export async function rescheduleBooking(ctx: BookingCtx, start: number): Promise
     }
   }
   await Promise.all([
-    sendEmail({ to: updated.guestEmail, ...guestConfirmation(next, "rescheduled"), attachments: [inviteFor(next, "REQUEST")] }),
+    emailGuest(next, { ...guestConfirmation(next, "rescheduled"), attachments: [inviteFor(next, "REQUEST")] }),
     notifyHosts(next, "rescheduled"),
   ]);
   return updated;
@@ -428,7 +441,7 @@ export async function cancelBooking(bookingId: string, by: "guest" | "owner", re
     }
   }
   await Promise.all([
-    sendEmail({ to: updated.guestEmail, ...guestCancellation(next, by, reason), attachments: [inviteFor(next, "CANCEL")] }),
+    emailGuest(next, { ...guestCancellation(next, by, reason), attachments: [inviteFor(next, "CANCEL")] }),
     notifyHosts(next, "cancelled", reason),
   ]);
 }
@@ -456,7 +469,7 @@ export async function sendDueReminders(now = Date.now(), hoursAhead = Number(pro
   for (const { id } of due) {
     const ctx = await getBookingWithContext(id);
     if (!ctx) continue;
-    const res = await sendEmail({ to: ctx.booking.guestEmail, ...guestReminder(ctx) });
+    const res = await emailGuest(ctx, guestReminder(ctx));
     if (res.ok) {
       await db.update(schema.bookings).set({ reminderSentAt: now }).where(eq(schema.bookings.id, id));
       sent++;

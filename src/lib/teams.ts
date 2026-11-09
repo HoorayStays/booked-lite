@@ -7,7 +7,7 @@ import { and, eq, gt, inArray, isNull } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import type { EventType, Team, User } from "./db/schema";
 import { randomId, randomToken, sha256 } from "./crypto";
-import { allowedEmails, appUrl } from "./env";
+import { allowedEmails, appUrl, guestEmailMode } from "./env";
 import { sendEmail } from "./email/send";
 import { teamInviteEmail } from "./email/templates";
 import { RESERVED_USERNAMES, ensureUser, slugify } from "./users";
@@ -81,16 +81,19 @@ export async function renameTeam(team: Team, name: string, slugInput: string) {
   return null;
 }
 
-/** Emails a join link. Returns an error message for the admin, or null. */
-export async function inviteToTeam(team: Team, inviter: User, rawEmail: string): Promise<string | null> {
+/**
+ * Emails a join link. Returns { error } for the admin, or { link } when the link must be shared by hand
+ * (no verified email domain yet, so Resend can't reach the teammate).
+ */
+export async function inviteToTeam(team: Team, inviter: User, rawEmail: string): Promise<{ error?: string; link?: string }> {
   const email = rawEmail.trim().toLowerCase();
-  if (!/^\S+@\S+\.\S+$/.test(email)) return "Please enter a valid email.";
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Please enter a valid email." };
   const db = getDb();
   const user = await db.query.users.findFirst({ where: eq(schema.users.email, email) });
   if (user) {
     const m = await getMembership(user.id);
-    if (m?.team.id === team.id) return "They're already on your team.";
-    if (m) return "That person is already on another team.";
+    if (m?.team.id === team.id) return { error: "They're already on your team." };
+    if (m) return { error: "That person is already on another team." };
   }
   const token = randomToken();
   await db.insert(schema.teamInvites).values({
@@ -101,7 +104,7 @@ export async function inviteToTeam(team: Team, inviter: User, rawEmail: string):
   });
   const link = `${appUrl()}/invite/${token}`;
   await sendEmail({ to: email, ...teamInviteEmail(team.name, inviter.name || inviter.email, link) });
-  return null;
+  return guestEmailMode() === "forward-to-host" ? { link } : {};
 }
 
 export async function pendingInvites(teamId: string) {

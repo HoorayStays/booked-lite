@@ -34,6 +34,16 @@ export function emailConfigured(): boolean {
   return Boolean(process.env.RESEND_API_KEY);
 }
 
+/**
+ * Can we email guests? Resend only delivers to OTHER people once you send from a domain you verified.
+ * "onboarding@resend.dev" (no domain yet) can only reach the Resend account owner.
+ */
+export function guestEmailMode(): "send" | "forward-to-host" | "log" {
+  if (!emailConfigured()) return "log"; // no Resend key: everything is printed to the server log
+  const from = process.env.EMAIL_FROM?.trim() ?? "";
+  return from && !/@resend\.dev>?$/i.test(from) ? "send" : "forward-to-host";
+}
+
 export function emailFrom(): string {
   return process.env.EMAIL_FROM?.trim() || "B👀KED Lite <onboarding@resend.dev>";
 }

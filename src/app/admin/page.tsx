@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { requireUser } from "@/lib/auth";
 import { listBookings } from "@/lib/bookings";
 import { getDb, schema } from "@/lib/db";
-import { appUrl, emailConfigured, googleConfigured } from "@/lib/env";
+import { appUrl, emailConfigured, googleConfigured, guestEmailMode } from "@/lib/env";
 import { formatDateTimeRange } from "@/lib/format";
 import { isUrl, locationDisplay } from "@/lib/location";
 import { CopyLink } from "@/components/CopyLink";
@@ -23,7 +23,12 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
     { done: Boolean(user.name), label: "Add your name and brand", href: "/admin/settings" },
     { done: Boolean(conn), label: "Connect your Google Calendar", href: "/admin/settings" },
     { done: events.some((e) => e.active), label: "Turn on at least one event type", href: "/admin/events" },
-    { done: emailConfigured(), label: "Set up email (Resend). See SETUP.md, step 5", href: undefined },
+    { done: emailConfigured(), label: "Set up email (Resend). See SETUP.md, step 3", href: undefined },
+    {
+      done: guestEmailMode() === "send",
+      label: "Verify your email domain so guests get emails (until then you get a copy to forward). SETUP.md → “No domain yet?”",
+      href: undefined,
+    },
   ];
   const todo = steps.filter((s) => !s.done);
   const pageUrl = `${appUrl()}/${user.username}`;
