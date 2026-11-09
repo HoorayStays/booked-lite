@@ -7,6 +7,7 @@ export const E2E_ENV = {
   DATABASE_URL: "file:.data/e2e.db",
   CALENDAR_PROVIDER: "fake",
   FAKE_CALENDAR_FILE: ".data/e2e-calendar.json",
+  FAKE_ZOOM_FILE: ".data/e2e-zoom.json",
   OUTBOX_FILE: ".data/e2e-outbox.jsonl",
   ALLOWED_EMAILS: "demo@example.com",
   AUTH_SECRET: "e2e-test-secret-not-for-production",

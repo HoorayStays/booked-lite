@@ -1,4 +1,4 @@
-import type { Booking, EventType, User } from "../db/schema";
+import type { Booking, EventType, Team, User } from "../db/schema";
 import { formatDateTimeRange, timeZoneLabel } from "../format";
 import { isUrl, locationDisplay } from "../location";
 import { appUrl } from "../env";
@@ -6,8 +6,34 @@ import type { Email } from "./send";
 
 const FOOTER_TEXT = "Scheduling by B👀KED Lite · Built by CoHost Studio (https://cohoststudio.com)";
 
+/**
+ * Everything an email needs about a booking.
+ * `owner` = who owns the event type (their brand + link are used); `hosts` = who actually meets the guest.
+ */
+export type BookingCtx = { booking: Booking; eventType: EventType; owner: User; hosts: User[]; team: Team | null };
+
 function esc(s: string) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+export function displayName(u: User) {
+  return u.name || u.username;
+}
+
+/** "Alex", "Alex & Sam", or "Alex (Sunny Stays)" for team events. */
+export function hostLabel(ctx: Pick<BookingCtx, "hosts" | "team" | "owner">) {
+  const names = (ctx.hosts.length ? ctx.hosts : [ctx.owner]).map(displayName).join(" & ");
+  return ctx.team ? `${names} (${ctx.team.name})` : names;
+}
+
+export function eventPageUrl(et: EventType, owner: User, team: Team | null) {
+  return team && et.teamId ? `${appUrl()}/team/${team.slug}/${et.slug}` : `${appUrl()}/${owner.username}/${et.slug}`;
+}
+export function manageUrl(b: Booking) {
+  return `${appUrl()}/booking/${b.id}?token=${b.manageToken}`;
+}
+export function rescheduleUrl(ctx: BookingCtx) {
+  return `${eventPageUrl(ctx.eventType, ctx.owner, ctx.team)}?reschedule=${ctx.booking.id}&token=${ctx.booking.manageToken}`;
 }
 
 function layout(opts: { brand: string; heading: string; intro: string; rows: [string, string][]; buttons: { label: string; href: string }[]; note?: string }) {
@@ -38,77 +64,80 @@ ${opts.note ? `<p style="margin:18px 0 0;color:#6b7280;font-size:13px;line-heigh
 </div></body></html>`;
 }
 
-type Ctx = { booking: Booking; eventType: EventType; owner: User };
-
-export function manageUrl(b: Booking) {
-  return `${appUrl()}/booking/${b.id}?token=${b.manageToken}`;
-}
-export function rescheduleUrl(b: Booking, owner: User, et: EventType) {
-  return `${appUrl()}/${owner.username}/${et.slug}?reschedule=${b.id}&token=${b.manageToken}`;
-}
-
 function whereHtml(b: Booking) {
   const v = locationDisplay(b.locationType, b.locationValue);
   return isUrl(v) ? `<a href="${esc(v)}">${esc(v)}</a>` : esc(v);
 }
 
-function detailRows(ctx: Ctx, tz: string, withGuest: boolean): [string, string][] {
-  const { booking: b, eventType: et, owner } = ctx;
+/** Lines describing where to meet, including a Zoom passcode when there is one. */
+export function whereText(b: Booking) {
+  const where = locationDisplay(b.locationType, b.locationValue);
+  return b.meetingPassword ? `${where} (passcode: ${b.meetingPassword})` : where;
+}
+
+function detailRows(ctx: BookingCtx, tz: string, forHost: boolean): [string, string][] {
+  const { booking: b, eventType: et } = ctx;
   const rows: [string, string][] = [
     ["What", esc(et.title)],
     ["When", `${esc(formatDateTimeRange(b.startUtc, b.endUtc, tz))}<br><span style="color:#6b7280">${esc(timeZoneLabel(tz))}</span>`],
     ["Where", whereHtml(b)],
   ];
-  if (withGuest) {
+  if (b.meetingPassword) rows.push(["Passcode", esc(b.meetingPassword)]);
+  if (forHost) {
     rows.push(["Guest", `${esc(b.guestName)} &lt;${esc(b.guestEmail)}&gt;`]);
+    if (ctx.hosts.length > 1 || ctx.team) rows.push(["Hosts", esc(ctx.hosts.map(displayName).join(", "))]);
     for (const q of et.questions) {
       const a = b.answers[q.id];
       if (a) rows.push([q.label, esc(a).replace(/\n/g, "<br>")]);
     }
   } else {
-    rows.push(["Host", esc(owner.name || owner.username)]);
+    rows.push(["Host", esc(hostLabel(ctx))]);
   }
   return rows;
 }
 
-function detailText(ctx: Ctx, tz: string, withGuest: boolean) {
-  const { booking: b, eventType: et, owner } = ctx;
+function detailText(ctx: BookingCtx, tz: string, forHost: boolean) {
+  const { booking: b, eventType: et } = ctx;
   const lines = [
     `What: ${et.title}`,
     `When: ${formatDateTimeRange(b.startUtc, b.endUtc, tz)} (${timeZoneLabel(tz)})`,
-    `Where: ${locationDisplay(b.locationType, b.locationValue)}`,
+    `Where: ${whereText(b)}`,
   ];
-  if (withGuest) {
+  if (forHost) {
     lines.push(`Guest: ${b.guestName} <${b.guestEmail}>`);
+    if (ctx.hosts.length > 1 || ctx.team) lines.push(`Hosts: ${ctx.hosts.map(displayName).join(", ")}`);
     for (const q of et.questions) if (b.answers[q.id]) lines.push(`${q.label}: ${b.answers[q.id]}`);
-  } else lines.push(`Host: ${owner.name || owner.username}`);
+  } else lines.push(`Host: ${hostLabel(ctx)}`);
   return lines.join("\n");
 }
 
-export function guestConfirmation(ctx: Ctx, kind: "new" | "rescheduled"): Omit<Email, "to"> {
+const replyTo = (ctx: BookingCtx) => (ctx.hosts[0] ?? ctx.owner).email;
+
+export function guestConfirmation(ctx: BookingCtx, kind: "new" | "rescheduled"): Omit<Email, "to"> {
   const { booking: b, eventType: et, owner } = ctx;
   const heading = kind === "new" ? "You're booked! 🎉" : "Your booking was moved";
-  const hostName = owner.name || owner.username;
+  const host = hostLabel(ctx);
   const manage = manageUrl(b);
-  const resched = rescheduleUrl(b, owner, et);
+  const resched = rescheduleUrl(ctx);
   return {
-    subject: `${kind === "new" ? "Confirmed" : "Updated"}: ${et.title} with ${hostName}`,
+    subject: `${kind === "new" ? "Confirmed" : "Updated"}: ${et.title} with ${host}`,
     html: layout({
       brand: owner.brandColor,
       heading,
-      intro: `Hi ${esc(b.guestName)}, your ${esc(et.title)} with ${esc(hostName)} is confirmed. A calendar invite is attached.`,
+      intro: `Hi ${esc(b.guestName)}, your ${esc(et.title)} with ${esc(host)} is confirmed. A calendar invite is attached.`,
       rows: detailRows(ctx, b.guestTimezone, false),
       buttons: [
+        ...(isUrl(b.locationValue) ? [{ label: "Join link", href: b.locationValue }] : []),
         { label: "Reschedule", href: resched },
         { label: "Cancel", href: manage },
       ],
     }),
     text: `${heading}\n\n${detailText(ctx, b.guestTimezone, false)}\n\nReschedule: ${resched}\nCancel: ${manage}\n\n${FOOTER_TEXT}`,
-    replyTo: owner.email,
+    replyTo: replyTo(ctx),
   };
 }
 
-export function ownerNotification(ctx: Ctx, kind: "new" | "rescheduled" | "cancelled", reason?: string): Omit<Email, "to"> {
+export function hostNotification(ctx: BookingCtx, host: User, kind: "new" | "rescheduled" | "cancelled", reason?: string): Omit<Email, "to"> {
   const { booking: b, eventType: et, owner } = ctx;
   const verb = kind === "new" ? "New booking" : kind === "rescheduled" ? "Booking moved" : "Booking cancelled";
   const admin = `${appUrl()}/admin`;
@@ -118,56 +147,58 @@ export function ownerNotification(ctx: Ctx, kind: "new" | "rescheduled" | "cance
       brand: owner.brandColor,
       heading: verb,
       intro: `${esc(b.guestName)} ${kind === "new" ? "booked" : kind === "rescheduled" ? "moved" : "cancelled"} a ${esc(et.title)}.${reason ? ` Reason: “${esc(reason)}”` : ""}`,
-      rows: detailRows(ctx, owner.timezone, true),
+      rows: detailRows(ctx, host.timezone, true),
       buttons: [{ label: "Open bookings", href: admin }],
     }),
-    text: `${verb}\n\n${detailText(ctx, owner.timezone, true)}${reason ? `\nReason: ${reason}` : ""}\n\n${admin}`,
+    text: `${verb}\n\n${detailText(ctx, host.timezone, true)}${reason ? `\nReason: ${reason}` : ""}\n\n${admin}`,
     replyTo: b.guestEmail,
   };
 }
 
-export function guestCancellation(ctx: Ctx, by: "guest" | "owner", reason?: string): Omit<Email, "to"> {
-  const { booking: b, eventType: et, owner } = ctx;
-  const hostName = owner.name || owner.username;
-  const again = `${appUrl()}/${owner.username}/${et.slug}`;
+export function guestCancellation(ctx: BookingCtx, by: "guest" | "owner", reason?: string): Omit<Email, "to"> {
+  const { booking: b, eventType: et, owner, team } = ctx;
+  const host = hostLabel(ctx);
+  const again = eventPageUrl(et, owner, team);
   return {
-    subject: `Cancelled: ${et.title} with ${hostName}`,
+    subject: `Cancelled: ${et.title} with ${host}`,
     html: layout({
       brand: owner.brandColor,
       heading: "Booking cancelled",
       intro:
         by === "owner"
-          ? `${esc(hostName)} had to cancel this booking.${reason ? ` Their note: “${esc(reason)}”` : ""}`
+          ? `${esc(host)} had to cancel this booking.${reason ? ` Their note: “${esc(reason)}”` : ""}`
           : "Your booking has been cancelled.",
       rows: detailRows(ctx, b.guestTimezone, false),
       buttons: [{ label: "Pick a new time", href: again }],
     }),
     text: `Booking cancelled\n\n${detailText(ctx, b.guestTimezone, false)}${reason ? `\nNote: ${reason}` : ""}\n\nPick a new time: ${again}\n\n${FOOTER_TEXT}`,
-    replyTo: owner.email,
+    replyTo: replyTo(ctx),
   };
 }
 
-export function guestReminder(ctx: Ctx): Omit<Email, "to"> {
+export function guestReminder(ctx: BookingCtx): Omit<Email, "to"> {
   const { booking: b, eventType: et, owner } = ctx;
-  const hostName = owner.name || owner.username;
+  const host = hostLabel(ctx);
   const manage = manageUrl(b);
-  const resched = rescheduleUrl(b, owner, et);
+  const resched = rescheduleUrl(ctx);
   const join = isUrl(b.locationValue) ? [{ label: "Join call", href: b.locationValue }] : [];
+  const tips: Partial<Record<Booking["locationType"], string>> = {
+    jitsi: "Tip: Jitsi runs in your browser. No download needed. On a phone, the free Jitsi Meet app works best.",
+    zoom: "Tip: on a phone, install the free Zoom app before the call.",
+    google_meet: "Tip: Google Meet works in your browser. On a phone, use the Google Meet app.",
+  };
   return {
-    subject: `Reminder: ${et.title} with ${hostName}`,
+    subject: `Reminder: ${et.title} with ${host}`,
     html: layout({
       brand: owner.brandColor,
       heading: "See you soon 👋",
-      intro: `Just a reminder about your ${esc(et.title)} with ${esc(hostName)}.`,
+      intro: `Just a reminder about your ${esc(et.title)} with ${esc(host)}.`,
       rows: detailRows(ctx, b.guestTimezone, false),
       buttons: [...join, { label: "Reschedule", href: resched }, { label: "Cancel", href: manage }],
-      note:
-        b.locationType === "jitsi"
-          ? "Tip: Jitsi runs in your browser. No download needed. On a phone, the free Jitsi Meet app works best."
-          : undefined,
+      note: tips[b.locationType],
     }),
     text: `Reminder\n\n${detailText(ctx, b.guestTimezone, false)}\n\nReschedule: ${resched}\nCancel: ${manage}\n\n${FOOTER_TEXT}`,
-    replyTo: owner.email,
+    replyTo: replyTo(ctx),
   };
 }
 
@@ -183,5 +214,20 @@ export function magicLinkEmail(link: string): Omit<Email, "to"> {
       note: "If you didn't ask for this, you can ignore this email.",
     }),
     text: `Sign in to B👀KED Lite:\n${link}\n\nThe link works once and expires in 15 minutes.`,
+  };
+}
+
+export function teamInviteEmail(teamName: string, inviterName: string, link: string): Omit<Email, "to"> {
+  return {
+    subject: `${inviterName} invited you to join ${teamName} on B👀KED Lite`,
+    html: layout({
+      brand: "#4f46e5",
+      heading: `Join ${esc(teamName)}`,
+      intro: `${esc(inviterName)} invited you to share booking pages with the team. You'll get your own booking page and can connect your own calendar.`,
+      rows: [],
+      buttons: [{ label: "Accept invite", href: link }],
+      note: "The invite link works once and expires in 7 days.",
+    }),
+    text: `${inviterName} invited you to join ${teamName} on B👀KED Lite.\n\nAccept: ${link}\n\nThe link works once and expires in 7 days.`,
   };
 }

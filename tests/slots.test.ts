@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DateTime } from "luxon";
-import { computeSlots, mergeIntervals, rangesForDate, type SlotRules } from "@/lib/slots";
+import { combineSlots, computeSlots, mergeIntervals, rangesForDate, type SlotRules } from "@/lib/slots";
 import { DEFAULT_WEEKLY } from "@/lib/types";
 
 const TZ = "America/Chicago";
@@ -133,5 +133,18 @@ describe("helpers", () => {
   });
   it("mergeIntervals joins overlaps", () => {
     expect(mergeIntervals([{ start: 5, end: 8 }, { start: 1, end: 3 }, { start: 2, end: 6 }])).toEqual([{ start: 1, end: 8 }]);
+  });
+});
+
+describe("combineSlots (teams)", () => {
+  it("round robin offers a time if anyone is free", () => {
+    expect(combineSlots([[1, 3, 5], [2, 3]], "any")).toEqual([1, 2, 3, 5]);
+  });
+  it("everyone-must-be-free only offers shared times", () => {
+    expect(combineSlots([[1, 3, 5], [2, 3, 5], [3, 5, 9]], "all")).toEqual([3, 5]);
+  });
+  it("no hosts means no times", () => {
+    expect(combineSlots([], "any")).toEqual([]);
+    expect(combineSlots([], "all")).toEqual([]);
   });
 });

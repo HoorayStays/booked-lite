@@ -106,3 +106,12 @@ export function mergeIntervals(list: Interval[]): Interval[] {
   }
   return out;
 }
+
+/** Round robin = anyone free (union). Everyone-must-be-free / personal = all free (intersection). */
+export function combineSlots(perHost: number[][], mode: "any" | "all"): number[] {
+  if (perHost.length === 0) return [];
+  if (mode === "any") return [...new Set(perHost.flat())].sort((a, b) => a - b);
+  const [first, ...rest] = perHost;
+  const sets = rest.map((s) => new Set(s));
+  return first.filter((t) => sets.every((s) => s.has(t)));
+}

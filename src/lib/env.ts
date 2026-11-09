@@ -42,6 +42,10 @@ export function googleConfigured(): boolean {
   return Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
 }
 
+export function zoomConfigured(): boolean {
+  return Boolean(process.env.ZOOM_CLIENT_ID && process.env.ZOOM_CLIENT_SECRET);
+}
+
 /** Test-only: use a fake calendar stored in a local JSON file instead of Google. */
 export function fakeCalendarEnabled(): boolean {
   return process.env.CALENDAR_PROVIDER === "fake";

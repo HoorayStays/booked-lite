@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { allowedEmails, appUrl, emailConfigured, emailFrom, googleConfigured } from "@/lib/env";
+import { allowedEmails, appUrl, emailConfigured, emailFrom, googleConfigured, zoomConfigured } from "@/lib/env";
 import { googleRedirectUri } from "@/lib/calendar/google";
+import { zoomRedirectUri } from "@/lib/zoom";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ export async function GET() {
     emailFromCustomDomain: emailConfigured() && !from.includes("resend.dev"),
     google: googleConfigured(),
     cronSecret: Boolean(process.env.CRON_SECRET),
+    zoom: zoomConfigured(), // optional
   };
   return NextResponse.json(
     {
@@ -36,6 +38,8 @@ export async function GET() {
       ...(databaseError ? { databaseError } : {}),
       appUrl: appUrl(),
       googleRedirectUri: googleRedirectUri(),
+      zoomRedirectUri: zoomRedirectUri(),
+      embedScript: `${appUrl()}/embed.js`,
       testCalendar: process.env.CALENDAR_PROVIDER === "fake",
     },
     { headers: { "cache-control": "no-store" } },

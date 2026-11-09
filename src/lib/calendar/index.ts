@@ -15,7 +15,7 @@ export async function getCalendar(userId: string): Promise<ConnectedCalendar | n
     where: eq(schema.calendarConnections.userId, userId),
   });
   if (!conn) return null;
-  if (conn.provider === "fake") return { conn, provider: fakeCalendar };
+  if (conn.provider === "fake") return { conn, provider: fakeCalendar(userId) };
   if (!conn.refreshTokenEnc) return null;
 
   const getAccessToken = async () => {

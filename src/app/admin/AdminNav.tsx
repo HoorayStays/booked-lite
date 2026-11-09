@@ -7,7 +7,9 @@ const TABS = [
   { href: "/admin", label: "Bookings" },
   { href: "/admin/events", label: "Event types" },
   { href: "/admin/availability", label: "Availability" },
-  { href: "/admin/settings", label: "Branding & calendar" },
+  { href: "/admin/team", label: "Team" },
+  { href: "/admin/embed", label: "Share & embed" },
+  { href: "/admin/settings", label: "Settings" },
 ];
 
 export function AdminNav() {

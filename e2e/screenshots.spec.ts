@@ -54,6 +54,22 @@ test("screenshots", async ({ browser }) => {
     await page.goto("/demo");
     await shot(page, `${s.name}-profile`);
 
+    await page.goto("/team/sunny-stays/assessment");
+    await expect(page.getByRole("grid", { name: "Choose a day" })).toBeVisible();
+    await page.waitForTimeout(500);
+    await shot(page, `${s.name}-team-event`);
+
+    await page.goto("/api/embed-preview?style=inline&path=/demo/intro-call");
+    await expect(page.frameLocator("iframe.booked-inline").getByRole("grid", { name: "Choose a day" })).toBeVisible();
+    await page.waitForTimeout(800);
+    await shot(page, `${s.name}-embed-inline`);
+
+    await page.goto("/api/embed-preview?style=floating&path=/demo/intro-call&text=Book%20a%20call&color=%230f766e");
+    await page.getByRole("button", { name: "Book a call" }).click();
+    await expect(page.frameLocator(".booked-panel iframe").getByRole("grid", { name: "Choose a day" })).toBeVisible();
+    await page.waitForTimeout(800);
+    await page.screenshot({ path: `${OUT}/${s.name}-embed-popup.png` });
+
     await page.goto("/demo/intro-call");
     await expect(page.getByRole("grid", { name: "Choose a day" })).toBeVisible();
     const day = page.getByRole("button", { name: new RegExp(`^${meta().date}`) });
@@ -86,7 +102,13 @@ test("screenshots", async ({ browser }) => {
       await page.goto("/admin/availability");
       await shot(page, "desktop-admin-availability");
       await page.goto("/admin/settings");
-      await shot(page, "desktop-admin-branding");
+      await shot(page, "desktop-admin-settings");
+      await page.goto("/admin/team");
+      await shot(page, "desktop-admin-team");
+      await page.goto("/admin/embed");
+      await page.getByText("Floating button").click();
+      await expect(page.frameLocator(".preview-frame").getByRole("button", { name: "Book a call" })).toBeVisible();
+      await shot(page, "desktop-admin-embed");
     }
     await ctx.close();
   }

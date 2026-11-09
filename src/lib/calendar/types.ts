@@ -8,14 +8,18 @@ export type CalendarEventInput = {
   end: number;
   timeZone: string;
   attendee: { name: string; email: string };
+  /** Ask Google to attach a Google Meet link to the event. */
+  withMeet?: boolean;
 };
+
+export type CreatedEvent = { id: string; meetUrl?: string };
 
 export type CalendarInfo = { id: string; name: string; primary: boolean };
 
 /** Anything that can tell us when the owner is busy and hold new bookings. */
 export interface CalendarProvider {
   busy(calendarIds: string[], from: number, to: number): Promise<Interval[]>;
-  createEvent(calendarId: string, ev: CalendarEventInput): Promise<string>;
+  createEvent(calendarId: string, ev: CalendarEventInput): Promise<CreatedEvent>;
   updateEvent(calendarId: string, eventId: string, ev: CalendarEventInput): Promise<void>;
   deleteEvent(calendarId: string, eventId: string): Promise<void>;
   listCalendars(): Promise<CalendarInfo[]>;

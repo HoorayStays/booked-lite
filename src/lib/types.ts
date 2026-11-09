@@ -14,7 +14,10 @@ export type Question = {
   required: boolean;
 };
 
-export type LocationType = "jitsi" | "link" | "phone" | "in_person";
+export type LocationType = "jitsi" | "link" | "phone" | "in_person" | "zoom" | "google_meet";
+
+/** Team events: next available person, or everyone must be free. */
+export type SchedulingType = "round_robin" | "collective";
 
 /** A busy block, epoch milliseconds UTC, end exclusive. */
 export type Interval = { start: number; end: number };

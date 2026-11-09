@@ -1,13 +1,16 @@
 import { requireUser } from "@/lib/auth";
 import { getCalendar } from "@/lib/calendar";
 import type { CalendarInfo } from "@/lib/calendar/types";
-import { appUrl, fakeCalendarEnabled, googleConfigured } from "@/lib/env";
+import { eq } from "drizzle-orm";
+import { getDb, schema } from "@/lib/db";
+import { appUrl, fakeCalendarEnabled, googleConfigured, zoomConfigured } from "@/lib/env";
+import { zoomRedirectUri } from "@/lib/zoom";
 import { googleRedirectUri } from "@/lib/calendar/google";
-import { connectFakeCalendar, disconnectCalendar } from "../actions";
+import { connectFakeCalendar, connectFakeZoom, disconnectCalendar, disconnectZoom } from "../actions";
 import { ProfileForm } from "./ProfileForm";
 import { CalendarChoice } from "./CalendarChoice";
 
-export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ calendar?: string }> }) {
+export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ calendar?: string; zoom?: string }> }) {
   const user = await requireUser();
   const sp = await searchParams;
   const cal = await getCalendar(user.id);
@@ -21,9 +24,11 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
     }
   }
 
+  const zoom = await getDb().query.zoomConnections.findFirst({ where: eq(schema.zoomConnections.userId, user.id) });
+
   return (
     <div className="stack">
-      <div className="page-title"><h1>Branding &amp; calendar</h1></div>
+      <div className="page-title"><h1>Settings</h1></div>
       <ProfileForm
         name={user.name}
         username={user.username}
@@ -68,6 +73,42 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
             )}
             {fakeCalendarEnabled() && (
               <form action={connectFakeCalendar}><button className="btn btn-secondary btn-sm">Use test calendar</button></form>
+            )}
+          </>
+        )}
+        <p className="subtle">Connecting Google also lets event types use <strong>Google Meet</strong> links.</p>
+      </div>
+
+      <div className="card stack" id="zoom">
+        <strong>Zoom (optional)</strong>
+        {sp.zoom === "connected" && <div className="alert alert-ok">Zoom connected ✓</div>}
+        {sp.zoom === "error" && (
+          <div className="alert alert-error">Zoom didn&apos;t finish connecting. Please try again (see SETUP.md → Zoom).</div>
+        )}
+        {zoom ? (
+          <>
+            <p>
+              Connected{zoom.accountEmail ? <> as <strong>{zoom.accountEmail}</strong></> : null}. Event types set to “Zoom” now get a
+              new meeting for every booking.
+            </p>
+            {zoom.lastError && <div className="alert alert-warn">Last problem: {zoom.lastError}</div>}
+            <form action={disconnectZoom}><button className="btn btn-ghost btn-sm" style={{ paddingLeft: 0 }}>Disconnect Zoom</button></form>
+          </>
+        ) : (
+          <>
+            <p className="muted">
+              Prefer Zoom? Connect your Zoom account and each booking gets its own Zoom meeting with a passcode.
+              Without it, the free Jitsi video link works with no account at all.
+            </p>
+            {zoomConfigured() ? (
+              <form action="/api/zoom/connect" method="get"><button className="btn btn-secondary">Connect Zoom</button></form>
+            ) : (
+              <div className="alert alert-warn">
+                Zoom keys aren&apos;t set up yet (optional). See SETUP.md → “Optional: Zoom”. Your redirect URL is <code>{zoomRedirectUri()}</code>
+              </div>
+            )}
+            {fakeCalendarEnabled() && (
+              <form action={connectFakeZoom}><button className="btn btn-secondary btn-sm">Use test Zoom</button></form>
             )}
           </>
         )}

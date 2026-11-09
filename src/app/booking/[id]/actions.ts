@@ -10,6 +10,6 @@ export async function cancelAsGuest(formData: FormData) {
   const reason = String(formData.get("reason") ?? "").trim().slice(0, 500);
   const ctx = await getBookingWithContext(id);
   if (!ctx || !safeEqual(ctx.booking.manageToken, token)) redirect("/");
-  await cancelBooking(ctx.booking, "guest", reason || undefined);
-  redirect(`/booking/${id}?token=${encodeURIComponent(token)}`);
+  await cancelBooking(ctx.booking.id, "guest", reason || undefined);
+  redirect(`/booking/${id}?token=${encodeURIComponent(token)}${formData.get("embed") === "1" ? "&embed=1" : ""}`);
 }

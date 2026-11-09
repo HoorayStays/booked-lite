@@ -1,23 +1,5 @@
-import { test, expect, type Page } from "@playwright/test";
-import fs from "node:fs";
-
-const meta = () => JSON.parse(fs.readFileSync(".data/e2e-meta.json", "utf8")) as { date: string };
-const calendar = () => JSON.parse(fs.readFileSync(".data/e2e-calendar.json", "utf8"));
-const outbox = () =>
-  fs.existsSync(".data/e2e-outbox.jsonl")
-    ? fs.readFileSync(".data/e2e-outbox.jsonl", "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l))
-    : [];
-
-async function openDay(page: Page, date: string) {
-  await expect(page.getByRole("grid", { name: "Choose a day" })).toBeVisible();
-  const dayButton = page.getByRole("button", { name: new RegExp(`^${date}`) });
-  for (let i = 0; i < 3 && !(await dayButton.isVisible()); i++) {
-    await page.getByRole("button", { name: "Next month" }).click();
-    await expect(page.getByRole("grid", { name: "Choose a day" })).toBeVisible();
-  }
-  await expect(dayButton).toBeEnabled();
-  await dayButton.click();
-}
+import { test, expect } from "@playwright/test";
+import { calendar, meta, openDay, outbox } from "./helpers";
 
 test("a guest books, gets an email + calendar event, and can cancel", async ({ page }) => {
   const { date } = meta();

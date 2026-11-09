@@ -75,8 +75,11 @@ export function emailFromIdToken(idToken?: string): string {
   }
 }
 
-function eventBody(ev: CalendarEventInput) {
+function eventBody(ev: CalendarEventInput, requestId?: string) {
   return {
+    ...(requestId
+      ? { conferenceData: { createRequest: { requestId, conferenceSolutionKey: { type: "hangoutsMeet" } } } }
+      : {}),
     summary: ev.title,
     description: ev.description,
     location: ev.location,
@@ -119,11 +122,12 @@ export function googleCalendar(getAccessToken: () => Promise<string>): CalendarP
       );
     },
     async createEvent(calendarId, ev) {
-      const data = await call<{ id: string }>(
-        `/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none`,
-        { method: "POST", body: JSON.stringify(eventBody(ev)) },
+      const requestId = ev.withMeet ? `booked-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` : undefined;
+      const data = await call<{ id: string; hangoutLink?: string }>(
+        `/calendars/${encodeURIComponent(calendarId)}/events?sendUpdates=none${requestId ? "&conferenceDataVersion=1" : ""}`,
+        { method: "POST", body: JSON.stringify(eventBody(ev, requestId)) },
       );
-      return data.id;
+      return { id: data.id, meetUrl: data.hangoutLink };
     },
     async updateEvent(calendarId, eventId, ev) {
       await call(`/calendars/${encodeURIComponent(calendarId)}/events/${encodeURIComponent(eventId)}?sendUpdates=none`, {

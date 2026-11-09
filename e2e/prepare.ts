@@ -6,7 +6,7 @@ import { execSync } from "node:child_process";
 import fs from "node:fs";
 import { DateTime } from "luxon";
 
-for (const f of [".data/e2e.db", ".data/e2e.db-journal", ".data/e2e.db-wal", ".data/e2e-outbox.jsonl", ".data/e2e-calendar.json"]) {
+for (const f of [".data/e2e.db", ".data/e2e.db-journal", ".data/e2e.db-wal", ".data/e2e-outbox.jsonl", ".data/e2e-calendar.json", ".data/e2e-zoom.json"]) {
   fs.rmSync(f, { force: true });
 }
 fs.mkdirSync(".data", { recursive: true });

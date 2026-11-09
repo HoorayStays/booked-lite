@@ -7,8 +7,9 @@ import path from "node:path";
 import type { CalendarProvider, CalendarEventInput } from "./types";
 import type { Interval } from "../types";
 
-type FakeEvent = CalendarEventInput & { id: string; calendarId: string };
-type FakeFile = { busy: { start: string; end: string }[]; events: FakeEvent[] };
+type FakeEvent = CalendarEventInput & { id: string; calendarId: string; userId: string };
+/** `busy` blocks apply to everyone (or only `userId` when set); `events` are bookings written by the app. */
+type FakeFile = { busy: { start: string; end: string; userId?: string }[]; events: FakeEvent[] };
 
 export function fakeCalendarPath(): string {
   return process.env.FAKE_CALENDAR_FILE || path.join(process.cwd(), ".data", "fake-calendar.json");
@@ -27,21 +28,22 @@ function writeFake(data: FakeFile) {
   fs.writeFileSync(fakeCalendarPath(), JSON.stringify(data, null, 2));
 }
 
-export const fakeCalendar: CalendarProvider = {
+export const fakeCalendar = (userId: string): CalendarProvider => ({
   async busy(_ids, from, to) {
     const data = readFake();
     const blocks: Interval[] = [
-      ...data.busy.map((b) => ({ start: Date.parse(b.start), end: Date.parse(b.end) })),
-      ...data.events.map((e) => ({ start: e.start, end: e.end })),
+      ...data.busy.filter((b) => !b.userId || b.userId === userId).map((b) => ({ start: Date.parse(b.start), end: Date.parse(b.end) })),
+      ...data.events.filter((e) => e.userId === userId).map((e) => ({ start: e.start, end: e.end })),
     ];
     return blocks.filter((b) => b.start < to && b.end > from);
   },
   async createEvent(calendarId, ev) {
     const data = readFake();
     const id = `fake_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
-    data.events.push({ ...ev, id, calendarId });
+    const meetUrl = ev.withMeet ? `https://meet.google.com/fak-${id.slice(-4)}-test` : undefined;
+    data.events.push({ ...ev, id, calendarId, userId, ...(meetUrl ? { location: meetUrl } : {}) });
     writeFake(data);
-    return id;
+    return { id, meetUrl };
   },
   async updateEvent(_calendarId, eventId, ev) {
     const data = readFake();
@@ -59,4 +61,4 @@ export const fakeCalendar: CalendarProvider = {
       { id: "airbnb", name: "Airbnb sync (test)", primary: false },
     ];
   },
-};
+});

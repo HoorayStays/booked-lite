@@ -6,7 +6,8 @@ import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
-import { cancelBooking } from "@/lib/bookings";
+import { canManageBooking, cancelBooking } from "@/lib/bookings";
+import { createTeam, getMembership, inviteToTeam, removeMember, renameTeam, setEventHosts } from "@/lib/teams";
 import { randomId } from "@/lib/crypto";
 import { isValidTimeZone } from "@/lib/format";
 import { isHexColor } from "@/lib/brand";
@@ -25,10 +26,9 @@ const int = (min: number, max: number) => z.coerce.number().int().min(min).max(m
 export async function cancelAsOwner(formData: FormData) {
   const user = await requireUser();
   const id = String(formData.get("id") ?? "");
-  const booking = await getDb().query.bookings.findFirst({
-    where: and(eq(schema.bookings.id, id), eq(schema.bookings.userId, user.id)),
-  });
-  if (booking) await cancelBooking(booking, "owner", String(formData.get("reason") ?? "").trim().slice(0, 500) || undefined);
+  if (await canManageBooking(user.id, id)) {
+    await cancelBooking(id, "owner", String(formData.get("reason") ?? "").trim().slice(0, 500) || undefined);
+  }
   revalidatePath("/admin");
 }
 
@@ -71,7 +71,8 @@ const EventSchema = z.object({
   dailyLimit: z.string().optional(),
   slotStepMin: int(5, 240),
   maxDaysAhead: int(1, 365),
-  locationType: z.enum(["jitsi", "link", "phone", "in_person"]),
+  locationType: z.enum(["jitsi", "link", "phone", "in_person", "zoom", "google_meet"]),
+  hostMode: z.enum(["me", "round_robin", "collective"]).default("me"),
   locationValue: z.string().trim().max(500),
   questions: z.string(),
   active: z.string().optional(),
@@ -79,7 +80,7 @@ const EventSchema = z.object({
 
 export async function saveEventType(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
-  const parsed = EventSchema.safeParse(Object.fromEntries(formData));
+  const parsed = EventSchema.safeParse({ ...Object.fromEntries(formData), hosts: undefined });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Please check the form" };
   const v = parsed.data;
   const slug = slugify(v.slug || v.title);
@@ -99,6 +100,17 @@ export async function saveEventType(id: string, _prev: ActionState, formData: Fo
   });
   if (clash) return { error: `You already have an event at /${slug}. Pick another link name.` };
   const limit = v.dailyLimit ? Number(v.dailyLimit) : null;
+
+  // Team events: only the team owner can create them, and they need at least one host.
+  let teamId: string | null = null;
+  let hostIds: string[] = [];
+  if (v.hostMode !== "me") {
+    const membership = await getMembership(user.id);
+    if (membership?.role !== "owner") return { error: "Only the team owner can create team events." };
+    teamId = membership.team.id;
+    hostIds = formData.getAll("hosts").map(String);
+    if (hostIds.length === 0) return { error: "Pick at least one teammate to host this event." };
+  }
   await db
     .update(schema.eventTypes)
     .set({
@@ -116,8 +128,12 @@ export async function saveEventType(id: string, _prev: ActionState, formData: Fo
       locationValue: v.locationValue,
       questions,
       active: v.active === "on",
+      teamId,
+      schedulingType: v.hostMode === "me" ? null : v.hostMode,
     })
     .where(and(eq(schema.eventTypes.id, id), eq(schema.eventTypes.userId, user.id)));
+  if (teamId) await setEventHosts(id, teamId, hostIds);
+  else await db.delete(schema.eventTypeHosts).where(eq(schema.eventTypeHosts.eventTypeId, id));
   revalidatePath("/admin/events");
   return { ok: true, message: "Saved ✓" };
 }
@@ -251,4 +267,75 @@ export async function saveCalendarChoice(_prev: ActionState, formData: FormData)
     .where(eq(schema.calendarConnections.userId, user.id));
   revalidatePath("/admin/settings");
   return { ok: true, message: "Saved ✓" };
+}
+
+/* ---------------- team ---------------- */
+
+export async function createTeamAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  if (!name) return { error: "Give your team a name." };
+  if (await getMembership(user.id)) return { error: "You're already on a team." };
+  await createTeam(user, name);
+  revalidatePath("/admin", "layout");
+  return { ok: true, message: "Team created ✓" };
+}
+
+async function requireTeamOwner() {
+  const user = await requireUser();
+  const m = await getMembership(user.id);
+  if (!m || m.role !== "owner") redirect("/admin/team");
+  return { user, team: m.team };
+}
+
+export async function renameTeamAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { team } = await requireTeamOwner();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  if (!name) return { error: "Give your team a name." };
+  const err = await renameTeam(team, name, String(formData.get("slug") ?? ""));
+  if (err) return { error: err };
+  revalidatePath("/admin/team");
+  return { ok: true, message: "Saved ✓" };
+}
+
+export async function inviteAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const { user, team } = await requireTeamOwner();
+  const email = String(formData.get("email") ?? "");
+  const err = await inviteToTeam(team, user, email);
+  if (err) return { error: err };
+  revalidatePath("/admin/team");
+  return { ok: true, message: `Invite sent to ${email.trim().toLowerCase()} ✓` };
+}
+
+export async function revokeInviteAction(formData: FormData) {
+  const { team } = await requireTeamOwner();
+  await getDb()
+    .delete(schema.teamInvites)
+    .where(and(eq(schema.teamInvites.teamId, team.id), eq(schema.teamInvites.tokenHash, String(formData.get("id") ?? ""))));
+  revalidatePath("/admin/team");
+}
+
+export async function removeMemberAction(formData: FormData) {
+  const { team } = await requireTeamOwner();
+  await removeMember(team, String(formData.get("userId") ?? ""));
+  revalidatePath("/admin/team");
+}
+
+/* ---------------- Zoom ---------------- */
+
+export async function disconnectZoom() {
+  const user = await requireUser();
+  await getDb().delete(schema.zoomConnections).where(eq(schema.zoomConnections.userId, user.id));
+  revalidatePath("/admin/settings");
+}
+
+/** Test mode only (CALENDAR_PROVIDER=fake): a pretend Zoom account. */
+export async function connectFakeZoom() {
+  const user = await requireUser();
+  if (process.env.CALENDAR_PROVIDER !== "fake") return;
+  await getDb()
+    .insert(schema.zoomConnections)
+    .values({ userId: user.id, accountEmail: "test-zoom@example.com", refreshTokenEnc: "fake" })
+    .onConflictDoNothing();
+  revalidatePath("/admin/settings");
 }

@@ -8,8 +8,8 @@ import { useTimeZones } from "@/components/useTimeZones";
 import { ChevronLeft, ChevronRight, GlobeIcon } from "@/components/Icons";
 
 type Props = {
-  username: string;
-  eventSlug: string;
+  eventId: string;
+  embed?: boolean;
   durationMin: number;
   questions: Question[];
   askPhone: boolean;
@@ -32,7 +32,7 @@ function shiftMonth(ym: string, delta: number) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-export function BookingWidget({ username, eventSlug, durationMin, questions, askPhone, reschedule }: Props) {
+export function BookingWidget({ eventId, embed, durationMin, questions, askPhone, reschedule }: Props) {
   const detectedTz = useSyncExternalStore(subscribe, browserTz, serverTz);
   const [chosenTz, setChosenTz] = useState<string | null>(null);
   const tz = chosenTz ?? detectedTz;
@@ -56,13 +56,13 @@ export function BookingWidget({ username, eventSlug, durationMin, questions, ask
       const [y, m] = ym.split("-").map(Number);
       const from = Date.UTC(y, m - 1, 1) - 15 * 3_600_000;
       const to = Date.UTC(y, m, 1) + 15 * 3_600_000;
-      const qs = new URLSearchParams({ user: username, event: eventSlug, from: String(from), to: String(to) });
+      const qs = new URLSearchParams({ event: eventId, from: String(from), to: String(to) });
       if (reschedule) qs.set("ignore", reschedule.id);
       const res = await fetch(`/api/slots?${qs}`);
       if (!res.ok) throw new Error("Could not load times");
       return ((await res.json()) as { slots: number[] }).slots;
     },
-    [username, eventSlug, reschedule],
+    [eventId, reschedule],
   );
 
   useEffect(() => {
@@ -140,8 +140,7 @@ export function BookingWidget({ username, eventSlug, durationMin, questions, ask
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({
-              user: username,
-              event: eventSlug,
+              event: eventId,
               start: selected,
               name: form.get("name"),
               email: form.get("email"),
@@ -153,7 +152,7 @@ export function BookingWidget({ username, eventSlug, durationMin, questions, ask
           });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
-      router.push(`/booking/${data.id}?token=${encodeURIComponent(data.token)}&done=1`);
+      router.push(`/booking/${data.id}?token=${encodeURIComponent(data.token)}&done=1${embed ? "&embed=1" : ""}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setSubmitting(false);

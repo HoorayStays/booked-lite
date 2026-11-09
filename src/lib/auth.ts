@@ -3,18 +3,15 @@ import { redirect } from "next/navigation";
 import { and, eq, gt, isNull, lt } from "drizzle-orm";
 import { getDb, schema } from "./db";
 import { randomToken, sha256 } from "./crypto";
-import { allowedEmails, appUrl } from "./env";
+import { appUrl } from "./env";
 import { sendEmail } from "./email/send";
 import { magicLinkEmail } from "./email/templates";
 import { ensureUser } from "./users";
+import { isAllowedEmail } from "./teams";
 
 const COOKIE = "booked_session";
 const SESSION_DAYS = 30;
 const TOKEN_MINUTES = 15;
-
-export function isAllowed(email: string) {
-  return allowedEmails().includes(email.trim().toLowerCase());
-}
 
 /**
  * Emails a one-time sign-in link. Returns the link itself only so local development
@@ -22,7 +19,7 @@ export function isAllowed(email: string) {
  */
 export async function requestMagicLink(rawEmail: string): Promise<{ link?: string }> {
   const email = rawEmail.trim().toLowerCase();
-  if (!isAllowed(email)) return {};
+  if (!(await isAllowedEmail(email))) return {};
   const db = getDb();
   const recent = await db
     .select()
@@ -44,7 +41,7 @@ export async function requestMagicLink(rawEmail: string): Promise<{ link?: strin
 export async function verifyMagicLink(token: string): Promise<boolean> {
   const db = getDb();
   const row = await db.query.loginTokens.findFirst({ where: eq(schema.loginTokens.tokenHash, sha256(token)) });
-  if (!row || row.usedAt || row.expiresAt < Date.now() || !isAllowed(row.email)) return false;
+  if (!row || row.usedAt || row.expiresAt < Date.now() || !(await isAllowedEmail(row.email))) return false;
   await db.update(schema.loginTokens).set({ usedAt: Date.now() }).where(eq(schema.loginTokens.tokenHash, row.tokenHash));
   await db.delete(schema.loginTokens).where(lt(schema.loginTokens.expiresAt, Date.now() - 86_400_000));
   const user = await ensureUser(row.email);
@@ -72,7 +69,7 @@ export async function getCurrentUser() {
   const session = await db.query.sessions.findFirst({ where: eq(schema.sessions.id, sha256(value)) });
   if (!session || session.expiresAt < Date.now()) return null;
   const user = await db.query.users.findFirst({ where: eq(schema.users.id, session.userId) });
-  if (!user || !isAllowed(user.email)) return null;
+  if (!user || !(await isAllowedEmail(user.email))) return null;
   return user;
 }
 

@@ -13,7 +13,8 @@ You'll create five free accounts. You do the clicking; Claude explains and check
 | 2 | **Turso** | The database (your events and bookings) | Free: 5 GB |
 | 3 | **Resend** | Sends confirmation and reminder emails | Free: 3,000 emails/month, 100/day |
 | 4 | **Vercel** | Puts your site on the internet | Free "Hobby" plan |
-| 5 | **Google Cloud** | Lets the app read and write your Google Calendar | Free |
+| 5 | **Google Cloud** | Lets the app read and write your Google Calendar (and make Google Meet links) | Free |
+| (optional) | **Zoom** | Auto-creates a Zoom meeting per booking | Free Zoom works (meetings limited to 40 min); paid plans have no limit |
 
 ---
 
@@ -176,7 +177,7 @@ Google's screens change often; if a button has a slightly different name, look f
 12. **Redeploy** (Deployments → ⋯ → Redeploy).
 
 ### 6f. Connect!
-13. In your dashboard go to **Branding & calendar** → **Connect Google Calendar**.
+13. In your dashboard go to **Settings** → **Connect Google Calendar**.
 14. Pick your Google account. You'll see **"Google hasn't verified this app"**. That's expected for your own
     private app. Click **Advanced** → **Go to [your app name] (unsafe)** → tick the boxes → **Continue**.
 15. Back in the dashboard you'll see **Google Calendar connected ✓**. Choose which calendars to check for conflicts
@@ -190,13 +191,15 @@ Google's screens change often; if a button has a slightly different name, look f
 
 In the dashboard:
 
-1. **Branding & calendar:** your name, a short intro, brand color, logo, and a cover photo → **Save**.
+1. **Settings:** your name, a short intro, brand color, logo, and a cover photo → **Save**.
 2. **Availability:** check your timezone, set your weekly hours, and add days off → **Save availability**.
 3. **Event types:** edit **Quick chat** or click **+ New event type**. Set the title, length, buffers, minimum notice,
    daily limit, questions, and where it happens:
-   - **Video call (Jitsi):** a free private room is created for every booking. Nothing to set up.
+   - **Video call (Jitsi):** the default. A free private room is created for every booking. Nothing to set up.
      *(The first person to join may be asked to sign in with Google/GitHub on meet.jit.si. That's normal.)*
-   - **Your own link:** paste your Zoom / StreamYard / Google Meet link.
+   - **Google Meet:** a new Meet link for every booking, made through your connected Google Calendar. Nothing else to set up.
+   - **Zoom:** a new Zoom meeting (with passcode) for every booking. Needs the optional Zoom step below.
+   - **Your own link:** paste a fixed Zoom / StreamYard / Meet link.
    - **Phone** or **In person.**
 
    Tick **Show this on my booking page** → **Save**.
@@ -238,6 +241,89 @@ Then:
 1. Add `APP_URL` = `https://book.sunnystays.com` in Vercel's Environment Variables.
 2. In Google Cloud → **Clients** → your client → add the new redirect URI `https://book.sunnystays.com/api/google/callback`.
 3. Redeploy.
+4. If you set up Zoom, add the new redirect URL in your Zoom app too.
+
+---
+
+## Step 11: Put it on your website (5 minutes)
+
+In your dashboard open **Share & embed**:
+
+1. Pick **which page** (one event, or your whole page).
+2. Pick a **style**:
+   - **Inline:** the booking calendar sits right inside your page.
+   - **Floating button:** a "Book a call" button floats in the corner and opens a popup.
+   - **Button / link:** a button you place anywhere that opens a popup.
+3. For the buttons, set the text and color. Check the **Live preview**.
+4. Click **Copy code**. It's one `<div>` (or `<a>`) plus one `<script>` line. Then paste it into your site:
+
+| Website builder | Where to paste |
+|---|---|
+| **WordPress** (block editor) | Edit the page → **+** → search **Custom HTML** → paste → **Update**. For the floating button on every page: **Appearance → Widgets → + → Custom HTML** in the footer. On WordPress.com this needs a plan that allows custom code; otherwise use the "plain link" version. |
+| **Wix** | **Add (+)** → **Embed Code** → **Embed HTML** → **Enter Code** → paste → **Update**. Drag the box bigger for the inline style (about 700 px tall). For a floating button on every page: **Settings → Custom Code → + Add Code** → paste → "All pages", "Body - end". |
+| **Squarespace** | Edit the page → **Add block** → **Code** → paste → make sure "Display Source" is off. For a site-wide floating button: **Settings → Advanced → Code Injection → Footer**. |
+| **Google Sites** | **Insert** → **Embed** → **Embed code** → paste → **Next** → **Insert**, then drag the box taller. (Floating buttons stay inside that box in Google Sites; inline works best.) |
+| **Webflow / Carrd / Framer / Shopify** | Use their **Embed** / **Custom code** / **HTML** element and paste. |
+| **Linktree, Instagram, emails, Airbnb messages** | Scripts aren't allowed there. Use your plain link, or the "No scripts allowed?" button code. |
+
+Your booking page shows inside your site with your colors, and works on phones (the popup goes full-screen).
+
+---
+
+## Optional: a team (co-hosts, VAs, cleaners' coordinator…)
+
+1. **Team** tab → type a team name → **Create team**.
+2. **Invite a teammate by email** → **Send invite**. They click the link in the email, tap **Accept & continue**, and
+   land in their own dashboard. *(Until your Resend domain is verified, invites only reach your own address.)*
+3. Each teammate sets their name, **connects their own Google Calendar** (and Zoom, if you use it) in **Settings**,
+   and sets their **Availability**. They also get their own booking page.
+4. Make a team event: **Event types** → **+ New event type** → under **Who hosts this?** choose:
+   - **Team: next available person** (round robin): guests get whoever is free, taking turns.
+   - **Team: everyone together:** only shows times when every chosen teammate is free.
+
+   Tick the teammates → **Save**. Team events live at `https://YOUR-SITE/team/YOUR-TEAM`.
+
+Removing someone (Team tab → **Remove**) signs them out, takes their pages offline and stops them hosting team events.
+*Need roles, a shared CRM, an AI note-taker or agents? That's the full version at [cohoststudio.com](https://cohoststudio.com).*
+
+---
+
+## Optional: Google Meet links
+
+Nothing extra to set up. Once your Google Calendar is connected (step 6), choose **Google Meet** as the meeting type on any
+event. Each booking gets its own Meet link in the confirmation, the invite and the reminder.
+
+---
+
+## Optional: Zoom (about 10 minutes)
+
+Each booking gets its own Zoom meeting with a passcode. It moves when the guest reschedules and is deleted when they cancel.
+Zoom's screens change often; pick the closest match if a name differs.
+
+1. Go to **https://marketplace.zoom.us** and sign in with your Zoom account.
+2. Top right: **Develop** → **Build App**. Choose **General App** → **Create**.
+3. **Basic Information:**
+   - Click the pencil next to the app name → `Booked Lite` (or your business name).
+   - **How will your app be managed?** → **User-managed app**.
+   - Under **OAuth Information** → **OAuth Redirect URL**: paste `https://YOUR-SITE.vercel.app/api/zoom/callback`
+     (also shown as `zoomRedirectUri` at `/api/health`).
+   - **OAuth Allow List:** add the same address.
+   - Copy the **Client ID** and **Client Secret** into your private note. (Use the **Development** ones. They work for
+     everyone in your own Zoom account.)
+   - Click **Continue** (or **Save**).
+4. **Scopes** → **+ Add Scopes**. Search and tick:
+   - **Meeting** → *Create a meeting for a user* (`meeting:write:meeting`), *Update a meeting* (`meeting:update:meeting`),
+     *Delete a meeting* (`meeting:delete:meeting`)
+   - **User** → *View a user* (`user:read:user`)
+
+   Click **Done** → **Continue**. You can skip the other pages (Surface, Features…). You don't need to publish the app.
+5. In **Vercel → Settings → Environment Variables** add `ZOOM_CLIENT_ID` and `ZOOM_CLIENT_SECRET` → **Redeploy**.
+6. In your dashboard: **Settings** → **Connect Zoom** → **Allow**. You'll see "Zoom connected ✓".
+7. Set an event type's meeting type to **Zoom** → **Save**. Test-book it: the confirmation shows the Zoom link and passcode.
+
+**Teammates:** each person clicks **Connect Zoom** with their own Zoom login. For round-robin events the meeting is
+created in the Zoom of whoever gets the booking. If someone hasn't connected Zoom, their bookings get a free Jitsi link instead,
+so nothing breaks.
 
 ---
 
@@ -272,7 +358,7 @@ The redirect URI in Google Cloud (step 6d) must match exactly what `/api/health`
 Your app is still in **Testing**. Go to **Audience** → **Publish app** (step 6c, #8). Or add your email under **Test users**.
 
 **Calendar was connected, but now says "We had trouble reaching your calendar"**
-Disconnect and connect again in **Branding & calendar**. If your app was in **Testing** mode, publish it (see above) so
+Disconnect and connect again in **Settings**. If your app was in **Testing** mode, publish it (see above) so
 this stops happening every 7 days.
 
 **Connecting Google sends me back with "didn't finish connecting"**
@@ -290,6 +376,29 @@ Set your timezone in **Availability**. Guests see times in *their* timezone, whi
 **I changed something in Vercel and nothing happened**
 Redeploy (Deployments → ⋯ → Redeploy).
 
+**The embed is cut off / too short**
+Inline embeds grow by themselves once the script loads. In Wix or Google Sites the box has a fixed size, so drag it taller
+(about 700 px). Make sure you pasted **both** lines (the `<div>` and the `<script>`).
+
+**The floating button doesn't show**
+Some builders (WordPress.com free plans, Linktree) strip scripts. Use the plain link instead. Check you pasted the
+`<script>` line too.
+
+**Zoom says "Invalid redirect" (error 4,700)**
+The **OAuth Redirect URL** and **OAuth Allow List** in your Zoom app must exactly match `zoomRedirectUri` from `/api/health`.
+
+**Zoom: "app can't be added" for a teammate**
+An unpublished Zoom app only works for people in **your** Zoom account. Add teammates as users in your Zoom account
+(Zoom → **User Management → Users → Add Users**), or let their events use Jitsi or Google Meet instead.
+
+**Bookings got a Jitsi link instead of Zoom/Meet**
+That host hasn't connected Zoom (or Google), or the connection broke. Check **Settings** for a "Last problem" note and
+reconnect. Zoom connections stop working after 90 days without any bookings; just reconnect.
+
+**A teammate didn't get their invite**
+Until your domain is verified in Resend, emails only reach your own address (step 3). Invites last 7 days; send a new one
+from the **Team** tab.
+
 **Still stuck?** Tell Claude exactly what you see (an error message or a screenshot description), but never paste keys.
 
 ---
@@ -305,6 +414,9 @@ Redeploy (Deployments → ⋯ → Redeploy).
 - [ ] A test booking: confirmation email ✓, host email ✓, calendar event ✓, cancel works ✓
 - [ ] (For guest emails) my domain is verified in Resend and `EMAIL_FROM` is set
 - [ ] (Optional) GitHub secrets `APP_URL` + `CRON_SECRET` added for hourly reminders
+- [ ] (Optional) The booking widget is on my website (**Share & embed**)
+- [ ] (Optional) Teammates invited, and each has connected their calendar and set availability
+- [ ] (Optional) Zoom connected and a test Zoom booking shows a link + passcode
 - [ ] I deleted my private note with the keys
 
 🎉 **Done!** Share your link everywhere: Airbnb messages, your website, your email signature.

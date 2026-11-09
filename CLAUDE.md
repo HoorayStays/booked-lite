@@ -23,6 +23,8 @@ Walk them through **[SETUP.md](SETUP.md)**, one step at a time. How to do it wel
 6. **Remind them to Redeploy** in Vercel after changing environment variables. It's the #1 cause of "it didn't work".
 7. **Finish with the Final checklist** in SETUP.md, and suggest a test booking from their phone.
 8. Use the **Troubleshooting** section of SETUP.md when something goes wrong.
+9. Afterwards, offer the optional extras in SETUP.md: **put it on their website** (step 11: walk them through their
+   website builder; ask which one they use), **a team**, **Google Meet**, and **Zoom**. Zoom keys follow the same secrets rule.
 
 ### 🔐 The secrets rule (never break this)
 
@@ -51,16 +53,26 @@ Walk them through **[SETUP.md](SETUP.md)**, one step at a time. How to do it wel
   Resend over plain HTTPS, Google Calendar over plain HTTPS (no SDKs), Luxon for timezone math (server only).
   Note: this Next.js version has breaking changes from older ones. See `AGENTS.md` and `node_modules/next/dist/docs/`.
 - `src/lib/slots.ts`: **availability engine** (pure function; weekly hours + overrides − busy, buffers,
-  minimum notice, daily limit, booking window, DST-safe). Covered by `tests/slots.test.ts`.
-- `src/lib/bookings.ts`: create / reschedule / cancel bookings, calendar writes, emails, reminders.
+  minimum notice, daily limit, booking window, DST-safe; `combineSlots` for teams). Covered by `tests/slots.test.ts`.
+- `src/lib/bookings.ts`: per-host slots, team host picking (round robin = least-recently-booked free host;
+  collective = everyone free), create / reschedule / cancel, Zoom + Google Meet creation (falls back to Jitsi), calendar
+  writes per host (`booking_hosts`), emails, reminders. Reschedules keep the same host(s).
+- `src/lib/teams.ts`: teams (one owner, members; a person is on at most one team), invites, who may sign in
+  (`ALLOWED_EMAILS` + current team members), event hosts. Deliberately no roles/permissions (that's the paid upgrade).
+- `src/lib/zoom.ts`: Zoom OAuth (user-managed General app) + meetings API; Zoom rotates refresh tokens on every
+  refresh, so the new one is always saved. A fake Zoom (JSON file) is used in tests.
+- `public/embed.js` + `src/lib/embed.ts`: the embeddable widget (inline iframe with auto-height via `postMessage`,
+  floating button, popup button) and the snippets shown in Admin → Share & embed. Public pages accept `?embed=1`
+  (`src/components/public/PublicShell.tsx`). `/admin`, `/login`, `/invite` send `frame-ancestors 'none'` (next.config.ts).
 - `src/lib/calendar/`: `google.ts` (OAuth + freebusy + events), `fake.ts` (JSON-file calendar for tests),
   `index.ts` (picks the provider, refreshes tokens). Tokens are encrypted with AES-GCM (`src/lib/crypto.ts`).
 - `src/lib/email/`: `send.ts` (Resend, or log to console/`.data/outbox.jsonl` when no key) and `templates.ts`.
 - `src/lib/ics.ts`: calendar invite files. `src/lib/location.ts` handles Jitsi rooms on meet.jit.si, links, phone, and in-person.
 - `src/lib/auth.ts`: magic-link sign-in (only emails in `ALLOWED_EMAILS`), sessions in the DB.
-- Public pages: `src/app/[user]/page.tsx` (profile), `src/app/[user]/[event]/` (booking page + `BookingWidget.tsx`),
-  `src/app/booking/[id]/` (confirmation / cancel). Admin: `src/app/admin/*` with server actions in `src/app/admin/actions.ts`.
-- API: `/api/slots`, `/api/bookings`, `/api/bookings/[id]/reschedule`, `/api/bookings/[id]/ics`,
+- Public pages: `src/app/[user]/` and `src/app/team/[slug]/` (profile + event pages, built from
+  `src/components/public/*`, incl. `BookingWidget.tsx`), `src/app/booking/[id]/` (confirmation / cancel),
+  `src/app/invite/[token]` (join a team). Admin: `src/app/admin/*` with server actions in `src/app/admin/actions.ts`.
+- API: `/api/slots?event=<id>`, `/api/bookings`, `/api/zoom/connect|callback`, `/api/embed-preview`, `/api/bookings/[id]/reschedule`, `/api/bookings/[id]/ics`,
   `/api/google/connect|callback`, `/api/cron/reminders` (needs `CRON_SECRET`), `/api/health`, `/api/img/...`.
 - Database schema: `src/lib/db/schema.ts`. After changing it run `npm run db:generate` and commit the new file in `drizzle/`.
   Migrations run automatically before `dev` and `build` (so every Vercel deploy updates the DB).
@@ -71,7 +83,7 @@ Walk them through **[SETUP.md](SETUP.md)**, one step at a time. How to do it wel
 
 ```bash
 npm run lint && npm run typecheck && npm test
-npm run test:e2e   # Playwright: full booking flow with a fake calendar (builds the app; ~1 min)
+npm run test:e2e   # Playwright: booking, teams, Zoom, embed, invites, with a fake calendar + fake Zoom (~1 min)
 ```
 
 CI (`.github/workflows/ci.yml`) runs all of these on every pull request.

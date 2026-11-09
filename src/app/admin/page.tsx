@@ -9,9 +9,10 @@ import { isUrl, locationDisplay } from "@/lib/location";
 import { CopyLink } from "@/components/CopyLink";
 import { cancelAsOwner } from "./actions";
 
-export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ view?: string }> }) {
+export default async function BookingsPage({ searchParams }: { searchParams: Promise<{ view?: string; welcome?: string }> }) {
   const user = await requireUser();
-  const view = (await searchParams).view === "past" ? "past" : "upcoming";
+  const sp = await searchParams;
+  const view = sp.view === "past" ? "past" : "upcoming";
   const db = getDb();
   const [rows, conn, events] = await Promise.all([
     listBookings(user.id, view),
@@ -32,6 +33,12 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
       <div className="page-title">
         <h1>Bookings</h1>
       </div>
+      {sp.welcome && (
+        <div className="alert alert-ok">
+          Welcome to the team! 🎉 Next: set your name in <Link href="/admin/settings">Settings</Link>, connect your calendar there, and check your{" "}
+          <Link href="/admin/availability">Availability</Link>.
+        </div>
+      )}
 
       <div className="card stack-sm">
         <strong>Your booking page</strong>
@@ -67,7 +74,7 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
         </div>
         <div className="list" data-testid="bookings-list">
           {rows.length === 0 && <p className="muted" style={{ padding: "16px 0" }}>No {view} bookings yet.</p>}
-          {rows.map(({ booking: b, eventTitle, questions }) => {
+          {rows.map(({ booking: b, eventTitle, questions, hosts }) => {
             const where = locationDisplay(b.locationType, b.locationValue);
             return (
               <div key={b.id} className="list-item">
@@ -76,8 +83,10 @@ export default async function BookingsPage({ searchParams }: { searchParams: Pro
                   <span>
                     {eventTitle} · {b.guestName} <span className="subtle">&lt;{b.guestEmail}&gt;</span>
                   </span>
+                  {(hosts.length > 1 || b.userId !== user.id) && <span className="small">Host: {hosts.join(", ")}</span>}
                   <span className="subtle" style={{ wordBreak: "break-all" }}>
                     {isUrl(where) ? <a href={where} target="_blank" rel="noopener">{where}</a> : where}
+                    {b.meetingPassword && <> · passcode {b.meetingPassword}</>}
                   </span>
                   {Object.keys(b.answers).length > 0 && (
                     <details className="small">

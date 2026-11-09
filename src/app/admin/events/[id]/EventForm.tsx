@@ -6,11 +6,28 @@ import type { LocationType, Question } from "@/lib/types";
 import { LOCATION_LABELS } from "@/lib/location";
 import { saveEventType, type ActionState } from "../../actions";
 
-export function EventForm({ eventType: et, baseUrl }: { eventType: EventType; baseUrl: string }) {
+type Person = { id: string; name: string; zoom: boolean; google: boolean };
+type Props = {
+  eventType: EventType;
+  baseUrl: string;
+  teamBaseUrl: string | null;
+  team: { name: string } | null;
+  people: Person[];
+  hostIds: string[];
+  me: string;
+};
+type HostMode = "me" | "round_robin" | "collective";
+
+export function EventForm({ eventType: et, baseUrl, teamBaseUrl, team, people, hostIds, me }: Props) {
   const [state, action, pending] = useActionState<ActionState, FormData>(saveEventType.bind(null, et.id), {});
   const [locationType, setLocationType] = useState<LocationType>(et.locationType);
   const [questions, setQuestions] = useState<Question[]>(et.questions);
   const [slug, setSlug] = useState(et.slug);
+  const [hostMode, setHostMode] = useState<HostMode>(et.teamId ? (et.schedulingType ?? "round_robin") : "me");
+  const [hosts, setHosts] = useState<string[]>(hostIds.length ? hostIds : people.map((p) => p.id));
+  const activeHosts = hostMode === "me" ? people.filter((p) => p.id === me) : people.filter((p) => hosts.includes(p.id));
+  const missingZoom = activeHosts.filter((p) => !p.zoom).map((p) => p.name);
+  const missingGoogle = activeHosts.filter((p) => !p.google).map((p) => p.name);
 
   const updateQ = (i: number, patch: Partial<Question>) =>
     setQuestions((qs) => qs.map((q, j) => (j === i ? { ...q, ...patch } : q)));
@@ -29,13 +46,54 @@ export function EventForm({ eventType: et, baseUrl }: { eventType: EventType; ba
         <div>
           <label htmlFor="slug">Link name</label>
           <input id="slug" name="slug" type="text" value={slug} onChange={(e) => setSlug(e.target.value)} maxLength={60} />
-          <p className="hint" style={{ wordBreak: "break-all" }}>{baseUrl}{slug || "…"}</p>
+          <p className="hint" style={{ wordBreak: "break-all" }}>{hostMode !== "me" && teamBaseUrl ? teamBaseUrl : baseUrl}{slug || "…"}</p>
         </div>
       </div>
       <div>
         <label htmlFor="description">Description</label>
         <textarea id="description" name="description" defaultValue={et.description} maxLength={2000} placeholder="What is this meeting about? What should guests prepare?" />
       </div>
+
+      {team && (
+        <>
+          <hr />
+          <strong>Who hosts this?</strong>
+          <input type="hidden" name="hostMode" value={hostMode} />
+          <div className="choice">
+            {([
+              ["me", "Just me", "A personal event on your own page."],
+              ["round_robin", "Team: next available person", `Guests get whoever on ${team.name} is free (taking turns).`],
+              ["collective", "Team: everyone together", "Only times when every chosen teammate is free."],
+            ] as const).map(([value, label, hint]) => (
+              <label key={value}>
+                <input type="radio" name="hostModeChoice" checked={hostMode === value} onChange={() => setHostMode(value)} />
+                <span>
+                  {label}
+                  <span className="hint" style={{ display: "block" }}>{hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+          {hostMode !== "me" && (
+            <div className="stack-sm">
+              <span className="small"><strong>Teammates on this event</strong></span>
+              {people.map((p) => (
+                <label key={p.id} className="check">
+                  <input
+                    type="checkbox"
+                    name="hosts"
+                    value={p.id}
+                    checked={hosts.includes(p.id)}
+                    onChange={(e) => setHosts(e.target.checked ? [...hosts, p.id] : hosts.filter((h) => h !== p.id))}
+                  />
+                  {p.name}
+                  {!p.google && <span className="badge">no calendar yet</span>}
+                </label>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
       <hr />
       <strong>Timing</strong>
@@ -88,6 +146,28 @@ export function EventForm({ eventType: et, baseUrl }: { eventType: EventType; ba
             <p className="hint" style={{ marginTop: 28 }}>
               Each booking gets its own private room on the free meet.jit.si. Nothing to set up.
               <input type="hidden" name="locationValue" value="" />
+            </p>
+          )}
+          {locationType === "zoom" && (
+            <p className="hint" style={{ marginTop: 28 }}>
+              A new Zoom meeting (with passcode) is created for each booking in the host&apos;s Zoom account.
+              <input type="hidden" name="locationValue" value="" />
+              {missingZoom.length > 0 && (
+                <span className="alert alert-warn" style={{ display: "block", marginTop: 8 }}>
+                  Not connected to Zoom yet: {missingZoom.join(", ")}. Until they connect it in Settings, their bookings get a free Jitsi link instead.
+                </span>
+              )}
+            </p>
+          )}
+          {locationType === "google_meet" && (
+            <p className="hint" style={{ marginTop: 28 }}>
+              A Google Meet link is added through the host&apos;s connected Google Calendar.
+              <input type="hidden" name="locationValue" value="" />
+              {missingGoogle.length > 0 && (
+                <span className="alert alert-warn" style={{ display: "block", marginTop: 8 }}>
+                  No Google Calendar connected yet: {missingGoogle.join(", ")}. Until then, their bookings get a free Jitsi link instead.
+                </span>
+              )}
             </p>
           )}
           {locationType === "link" && (

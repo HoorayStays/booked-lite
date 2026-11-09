@@ -8,9 +8,9 @@ on it, emails everyone a calendar invite, sends reminders, and creates a video l
 **Built by [CoHost Studio](https://cohoststudio.com).**
 Want the full version (CRM, AI note-taker, team scheduling, agents)? → **[cohoststudio.com](https://cohoststudio.com)**
 
-| Booking page (phone) | Booking page (desktop) | Your dashboard |
+| Booking page (phone) | Booking page (desktop) | Embed on your website |
 |---|---|---|
-| <img src="docs/screenshots/mobile-booking-page.png" width="220" alt="Booking page on a phone"> | <img src="docs/screenshots/desktop-booking-page.png" width="420" alt="Booking page on desktop"> | <img src="docs/screenshots/desktop-admin-bookings.png" width="300" alt="Bookings dashboard"> |
+| <img src="docs/screenshots/mobile-booking-page.png" width="220" alt="Booking page on a phone"> | <img src="docs/screenshots/desktop-booking-page.png" width="420" alt="Booking page on desktop"> | <img src="docs/screenshots/desktop-admin-embed.png" width="300" alt="Share and embed"> |
 
 ## ✨ Features
 
@@ -22,8 +22,14 @@ Want the full version (CRM, AI note-taker, team scheduling, agents)? → **[coho
 - **Timezones handled**: guests see times in their own timezone; daylight saving is handled.
 - **Emails** (via Resend's free tier): confirmation with `.ics` invite, reschedule and cancel links, host notifications,
   reminders.
-- **Video link per event:** a private free **Jitsi** room on meet.jit.si for every booking, or your own
-  Zoom/StreamYard/Meet link, or phone, or in person.
+- **Video link per event:** a private free **Jitsi** room for every booking (default, no account needed), or an
+  auto-created **Zoom** meeting with passcode (optional; connect your Zoom), or a **Google Meet** link (through your
+  connected Google Calendar), or a fixed Zoom/StreamYard link, or phone, or in person. Meetings move when guests reschedule
+  and are deleted when they cancel.
+- **Embed it on your website:** copy-paste one snippet from the admin: inline calendar, floating "Book a call" button, or
+  a popup button, in your colors. Works with WordPress, Wix, Squarespace, Google Sites and more.
+- **Simple teams:** invite teammates by email; each gets their own page and connects their own calendar. Team events can go to
+  the **next available person** (round robin) or need **everyone free**.
 - **Simple admin:** magic-link sign-in (no passwords); edit event types, availability and branding (logo, color,
   cover photo); see and cancel bookings.
 
@@ -44,7 +50,8 @@ Prefer to read? Everything is in **[SETUP.md](SETUP.md)**, including troubleshoo
 | [Turso](https://turso.tech) | Database | Free, no servers, works the same as a local file during development |
 | [Resend](https://resend.com) | Email | 3,000 free emails/month, simple setup |
 | [Google Cloud](https://console.cloud.google.com) | Calendar access | Free |
-| [meet.jit.si](https://meet.jit.si) | Video calls | Free, no account needed for guests |
+| [meet.jit.si](https://meet.jit.si) | Video calls (default) | Free, no account needed for guests |
+| [Zoom](https://marketplace.zoom.us) *(optional)* | Auto-created Zoom meetings | Each host connects their own Zoom |
 
 ## 🧑‍💻 For developers
 

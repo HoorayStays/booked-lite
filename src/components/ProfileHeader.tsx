@@ -1,8 +1,8 @@
 import type { User } from "@/lib/db/schema";
 import { imageUrl } from "@/lib/public";
 
-export function ProfileHeader({ owner, compact = false }: { owner: User; compact?: boolean }) {
-  const name = owner.name || owner.username;
+export function ProfileHeader({ owner, compact = false, title }: { owner: User; compact?: boolean; title?: string }) {
+  const name = title || owner.name || owner.username;
   return (
     <div className="profile-head" style={compact ? { marginTop: 0 } : undefined}>
       {owner.logo ? (

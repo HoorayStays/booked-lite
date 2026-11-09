@@ -5,7 +5,7 @@ import { DEFAULT_WEEKLY } from "./types";
 
 export const RESERVED_USERNAMES = new Set([
   "admin", "api", "login", "logout", "booking", "bookings", "_next", "static", "public",
-  "favicon.ico", "robots.txt", "sitemap.xml", "settings", "help",
+  "favicon.ico", "robots.txt", "sitemap.xml", "settings", "help", "team", "invite", "embed.js",
 ]);
 
 export function slugify(input: string): string {

@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   }
   try {
-    const updated = await rescheduleBooking(ctx.booking, ctx.eventType, ctx.owner, parsed.data.start);
+    const updated = await rescheduleBooking(ctx, parsed.data.start);
     return NextResponse.json({ id: updated.id, token: updated.manageToken });
   } catch (err) {
     if (err instanceof BookingError) return NextResponse.json({ error: err.message }, { status: 409 });

@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { getPublicEvent } from "@/lib/public";
+import { getEventById } from "@/lib/public";
 import { BookingError, createBooking } from "@/lib/bookings";
 import { isValidTimeZone } from "@/lib/format";
 
 const Body = z.object({
-  user: z.string().min(1).max(60),
   event: z.string().min(1).max(80),
   start: z.number().int().positive(),
   name: z.string().trim().min(1, "Please enter your name").max(120),
@@ -24,7 +23,7 @@ export async function POST(req: Request) {
   const body = parsed.data;
   if (body.website) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-  const found = await getPublicEvent(body.user, body.event);
+  const found = await getEventById(body.event);
   if (!found) return NextResponse.json({ error: "This booking page no longer exists." }, { status: 404 });
   const { owner, eventType } = found;
 
@@ -39,7 +38,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const booking = await createBooking(owner, eventType, {
+    const booking = await createBooking(eventType, {
       start: body.start,
       name: body.name,
       email: body.email.toLowerCase(),
