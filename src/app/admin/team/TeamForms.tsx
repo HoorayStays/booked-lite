@@ -19,7 +19,7 @@ export function CreateTeamForm() {
     <form action={action} className="stack-sm">
       <label htmlFor="team-name">Team name</label>
       <div className="row">
-        <input id="team-name" name="name" type="text" placeholder="Sunny Stays team" required maxLength={80} style={{ flex: "1 1 220px" }} />
+        <input id="team-name" name="name" type="text" placeholder="My rental team" required maxLength={80} style={{ flex: "1 1 220px" }} />
         <button className="btn" disabled={pending}>Create team</button>
       </div>
       <Status state={state} />

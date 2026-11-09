@@ -29,7 +29,7 @@ async function book(page: Page, time: string, name: string, email: string) {
   await page.getByRole("button", { name: time, exact: true }).click();
   await page.getByLabel("Your name").fill(name);
   await page.getByLabel("Email").fill(email);
-  await page.getByLabel("Property address").fill("88 Seawall Blvd, Galveston TX");
+  await page.getByLabel("Property address").fill("2 Sample Ave, Anytown");
   await page.getByRole("button", { name: "Confirm booking" }).click();
   await expect(page.getByTestId("booking-heading")).toBeVisible();
 }
@@ -54,7 +54,7 @@ test("screenshots", async ({ browser }) => {
     await page.goto("/demo");
     await shot(page, `${s.name}-profile`);
 
-    await page.goto("/team/sunny-stays/assessment");
+    await page.goto("/team/example-stays/assessment");
     await expect(page.getByRole("grid", { name: "Choose a day" })).toBeVisible();
     await page.waitForTimeout(500);
     await shot(page, `${s.name}-team-event`);
@@ -81,7 +81,7 @@ test("screenshots", async ({ browser }) => {
     await page.getByLabel("Your name").fill("Sam Guest");
     await page.getByLabel("Email").fill("sam@example.com");
     await shot(page, `${s.name}-booking-form`);
-    await page.getByLabel("Property address").fill("12 Beach Rd, Galveston TX");
+    await page.getByLabel("Property address").fill("1 Example Rd, Anytown");
     await page.getByRole("button", { name: "Confirm booking" }).click();
     await expect(page.getByTestId("booking-heading")).toBeVisible();
     await shot(page, `${s.name}-confirmed`);
